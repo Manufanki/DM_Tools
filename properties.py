@@ -134,6 +134,21 @@ class DMProperties(bpy.types.PropertyGroup):
     master_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
+blender_classes = [
+    PlayerProperties,    
+    FloorPointerProperties,
+    MapPointerProperties,
+    PlayerPointerProperties,
+    EnemyProperties,
+    EnemyPointerProperties,
+    DMProperties
+    ]
+def register():
+    for blender_class in blender_classes:
+        bpy.utils.register_class(blender_class)
 
 
+def unregister():
+    for blender_class in blender_classes:
+        bpy.utils.unregister_class(blender_class) 
 #endregion Properties

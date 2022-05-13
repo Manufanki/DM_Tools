@@ -730,30 +730,9 @@ class TOPBAR_PT_annotation_layers(bpy.types.Panel, AnnotationDataPanel):
 
 
 blender_classes = [
-    PlayerProperties,    
-    FloorPointerProperties,
-    MapPointerProperties,
-    PlayerPointerProperties,
-    EnemyProperties,
-    EnemyPointerProperties,
-    DMProperties,
     MESH_Setup_Map,
-    DM_PT_SceneSetupPanel,
-    DM_PT_CameraSetupPanel,
-    DM_PT_LightSetupPanel,
-    DM_PT_PlayerListPanel,
-    DM_PT_AddSetupPanel,
-    DM_PT_EnemyListPanel,
-    DM_PT_WindowSetupPanel,
-    DM_UL_Playerlist_player,
-    DM_UL_Enemylist,
-    DM_UL_Maplist,
-    DM_UL_Floorlist,
-    Map_List_Button,
-    Floor_List_Button,
     ImportMapImage,
     PLAYER_Distance_Button,
-    PLAYER_List_Button,
     PLAYER_Torch_Button,
     PLAYER_add,
     PLAYER_update,
@@ -762,7 +741,6 @@ blender_classes = [
     MAP_update,
     FLOOR_add,
     ENEMY_Distance_Button,
-    Enemy_List_Button,
     SCENE_Setup,
     SCENE_Grid_Setup,
     CAMERA_add,
@@ -781,6 +759,8 @@ blender_classes = [
 
 # Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
 def register():
+    properties.register()
+    ui.register()
     for blender_class in blender_classes:
         bpy.utils.register_class(blender_class)
 
@@ -796,6 +776,8 @@ def register():
     #bpy.context.scene.dm_property.master_coll = bpy.context.scene.collection
 
 def unregister():
+    properties.unregister()
+    ui.unregister()
     for blender_class in blender_classes:
         bpy.utils.unregister_class(blender_class)    
         
