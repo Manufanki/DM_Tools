@@ -181,33 +181,40 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
 
-            row = layout.row()
+            #row = layout.row()
             
-            col = row.column()
+            col = layout.column()
             gpd_owner = context.annotation_data_owner  
             gpd = context.annotation_data
             #col.template_ID(gpd_owner, "grease_pencil", new="gpencil.annotation_add", unlink="gpencil.data_unlink")
 
-            col.label(text="Maps")
-
             list_row_layout = col.row()
-            list_row_layout.template_list("DM_UL_Maplist", "", dm_property, "maplist", dm_property, "maplist_data_index")
-            menu_sort_layout_column = list_row_layout.column()
-            menu_sort_layout = menu_sort_layout_column.column(align=True)
-            menu_sort_layout.operator("map.update", text="", icon="FILE_REFRESH")
-            menu_sort_layout.operator("map.add", text="", icon="ADD")
-            #menu_sort_layout.operator("list.list_o", text="", icon="ADD").menu_active = 6
-            menu_sort_layout.operator("list.map_op", text="", icon="REMOVE").menu_active = 7
-            menu_sort_layout2 = menu_sort_layout_column.column(align=True)
-            menu_sort_layout.separator(factor=3.0)
-            menu_sort_layout2.operator("list.map_op", text="", icon="TRIA_UP").menu_active = 4
-            menu_sort_layout2.operator("list.map_op", text="", icon="TRIA_DOWN").menu_active = 5
+
+            list_row_layout.operator('example.choose_item', text="", icon='PRESET')
+            if len(dm_property.maplist) > 0:
+                list_row_layout.prop(dm_property.maplist[dm_property.maplist_data_index],"name", text ="")
+            else:
+                list_row_layout.label(text= "No Map exists")
+            list_row_layout.operator("map.add", text="", icon="ADD")
+            if len(dm_property.maplist) > 0:
+                list_row_layout.operator("list.map_op", text="", icon="REMOVE").menu_active = 7
+            list_row_layout.operator("map.update", text="", icon="FILE_REFRESH")
+            # list_row_layout.template_list("DM_UL_Maplist", "", dm_property, "maplist", dm_property, "maplist_data_index")
+            # menu_sort_layout_column = list_row_layout.column()
+            # menu_sort_layout = menu_sort_layout_column.column(align=True)
+            
+            # menu_sort_layout.operator("map.add", text="", icon="ADD")
+            # #menu_sort_layout.operator("list.list_o", text="", icon="ADD").menu_active = 6
+            # menu_sort_layout.operator("list.map_op", text="", icon="REMOVE").menu_active = 7
+            # menu_sort_layout2 = menu_sort_layout_column.column(align=True)
+            # menu_sort_layout.separator(factor=3.0)
+            # menu_sort_layout2.operator("list.map_op", text="", icon="TRIA_UP").menu_active = 4
+            # menu_sort_layout2.operator("list.map_op", text="", icon="TRIA_DOWN").menu_active = 5
 
             if dm_property.maplist_data_index >= 0:
                 map = dm_property.maplist[dm_property.maplist_data_index]
 
-                col = row.column()
-                col.label(text="Floors")
+                #col = row.column()
                 list_row_layout = col.row()
                 list_row_layout.template_list("DM_UL_Floorlist", "", map, "floorlist", map, "floorlist_data_index")
                 menu_sort_layout_column = list_row_layout.column()
@@ -559,42 +566,6 @@ class Enemy_List_Button(bpy.types.Operator):
                 context.scene.dm_property.enemylist_data_index = min(context.scene.dm_property.enemylist_data_index, len(context.scene.dm_property.enemylist)-1)
         return {"FINISHED"}      
 
-
-
-class Test_PT_Panel(bpy.types.Panel):
-    """Creates a Panel for all Player Settings"""
-    bl_label = "Player"
-    bl_idname = "test_panel"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'DM Tools'
-    
-    def draw(self, context):
-        layout = self.layout
-        group = layout.row(align=True)
-        choose_props = group.operator('example.choose_item', text="", icon='PRESET')
-        # if self.item_set:
-        #     group.prop(self.get_item(), "name", text="", expand=True)
-        #     clear_props = group.operator('example.clear_item', icon='X', text="")
-        #     clear_props.node_tree = self.id_data.name
-        #     clear_props.node = self.name
-        # else:
-        #     new_props = group.operator('example.new_item', icon='ADD', text='New')
-        #     new_props.node_tree = self.id_data.name
-        #     new_props.node = self.name
-        # choose_props.node_tree = self.id_data.name
-        # choose_props.name = self.name
-        
-items = [('one', 'Any', "", 'PRESET', 1), ('two', 'PropertyGroup', "", 'PRESET', 2), ('three', 'type', "", 'PRESET', 3)]
-
-
-
-class ChooseItemOperator(bpy.types.Operator):
-    bl_idname = "example.choose_item"
-    bl_label = "Choose item"
-    bl_options = {'INTERNAL'}
-    bl_property = "enum"
-
 class ChooseItemOperator(bpy.types.Operator):
     bl_idname = "example.choose_item"
     bl_label = "Choose item"
@@ -605,60 +576,25 @@ class ChooseItemOperator(bpy.types.Operator):
         enum = []
         dm_property = context.scene.dm_property
         test = dm_property.maplist
-        #test = [1,2,3,4,3,2,4,45,3,4,6,3,4,6,0]
         for i in range(len(test)):
             item = (str(i),str(test[i].name),"","PRESET", i)
             enum.append(item)
-        print(enum)
+        print(self.enum)
         return enum
 
     enum: bpy.props.EnumProperty(items=get_enum_options, name="Items")
-    node_tree: bpy.props.StringProperty()
-    node: bpy.props.StringProperty()
+
 
     def execute(self, context):
-        
-        tree = bpy.data.node_groups[self.node_tree]
-        node = tree.nodes[self.node]
-        node.item_set = True
-        node.set_item(self.enum)
+        dm_property = context.scene.dm_property
+        i = int(self.enum)
+        map = dm_property.maplist[i]
+        dm_property.maplist_data_index = i
         return {"FINISHED"}
 
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
         return {"FINISHED"}
-
-class NewItemOperator(bpy.types.Operator):
-    bl_idname = "example.new_item"
-    bl_label = "New Item"
-    bl_options = {'INTERNAL'}
-
-    node_tree: bpy.props.StringProperty()
-    node: bpy.props.StringProperty()
-
-    def execute(self, context):
-        global items
-        tree = bpy.data.node_groups[self.node_tree]
-        node = tree.nodes[self.node]
-        node.item_set = True
-        newitem = ('four', 'type', "", 'PRESET', 4)
-        items.append(newitem)
-        node.set_item(newitem)
-        return {'FINISHED'}
-
-class ClearItemOperator(bpy.types.Operator):
-    bl_idname = "example.clear_item"
-    bl_label = "Clear Item"
-    bl_options = {'INTERNAL'}
-
-    node_tree: bpy.props.StringProperty()
-    node: bpy.props.StringProperty()
-
-    def execute(self, context):
-        tree = bpy.data.node_groups[self.node_tree]
-        node = tree.nodes[self.node]
-        node.item_set = False
-        return {'FINISHED'}
 
 
 blender_classes = [
@@ -677,10 +613,8 @@ blender_classes = [
     Floor_List_Button,
     PLAYER_List_Button,
     Enemy_List_Button,
-    Test_PT_Panel,
     ChooseItemOperator,
-    NewItemOperator,
-    ClearItemOperator]
+]
     
 def register():
     for blender_class in blender_classes:
