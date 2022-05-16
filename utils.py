@@ -1,3 +1,4 @@
+from this import d
 import bpy
 
 #region Methods
@@ -252,10 +253,26 @@ def update_maps(self,context, collection):
         map_pointer = dm_property.maplist.add()
         map_pointer.map = map
         map_pointer.name = map.name
+
+        if map_pointer.annotation is None:
+
+            try:
+                map_pointer.annotation = bpy.data.grease_pencils[map.name]
+            except:
+                bpy.ops.gpencil.annotation_add()
+                map_pointer.annotation = context.annotation_data
+                map_pointer.annotation.name = map.name
+
+
         for floor in map.children:
             floor_pointer = map_pointer.floorlist.add()
             floor_pointer.floor = floor
             floor_pointer.name = floor.name
+
+            try:
+                map_pointer.annotation.layers[floor.name]
+            except:
+                map_pointer.annotation.layers.new(name = floor.name)    
 def delete_hierarchy(obj):
     names = set([obj.name])
     
@@ -292,13 +309,22 @@ def selectMap(self, context):
         for item in self.maplist:
             item.map.hide_viewport = True
         self.maplist[self.maplist_data_index].map.hide_viewport = False
+        context.scene.grease_pencil = self.maplist[self.maplist_data_index].annotation
 
 def selectFloor(self, context):
+    dm_property = context.scene.dm_property
+
     if self.floorlist_data_index != -1:
         for item in self.floorlist:
             item.floor.hide_viewport = True
         self.floorlist[self.floorlist_data_index].floor.hide_viewport = False
-        context.active_annotation_layer = self.floorlist[self.floorlist_data_index].annotation
+        map = dm_property.maplist[dm_property.maplist_data_index]
+
+        for layer in map.annotation.layers:
+            layer.annotation_hide = True
+
+        map.annotation.layers.active =  map.annotation.layers[self.floorlist[self.floorlist_data_index].name]
+        map.annotation.layers.active.annotation_hide = False
 
 def addToCollection(self,context, collectionName, obj):
     for coll in obj.users_collection:

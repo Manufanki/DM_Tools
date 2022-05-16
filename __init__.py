@@ -295,15 +295,19 @@ class MAP_add(bpy.types.Operator):
     def execute(self, context):
 
         bpy.ops.gpencil.annotation_add()
-        gpd = context.annotation_data
+
         
         dm_prop = bpy.context.scene.dm_property
         collection = check_if_collection_exists(self.tmp_name)
-        gpd.name = collection.name
+        
         for coll in dm_prop.maps_coll.children:
             if coll is collection:
                 return {'CANCELLED'}
         dm_prop.maps_coll.children.link(collection)
+
+        #context.scene.grease_pencil.new(name = collection.name)
+        gpd = context.annotation_data
+        gpd.name = collection.name
         collection_pointer = dm_prop.maplist.add()
         collection_pointer.annotation = gpd
         collection_pointer.map = collection
@@ -353,9 +357,9 @@ class FLOOR_add(bpy.types.Operator):
         collection_pointer.floor = collection
         collection_pointer.name = collection.name
 
-        bpy.ops.gpencil.layer_annotation_add()
-
-        gpl = context.active_annotation_layer
+        gpl = map.annotation.layers.new(name = collection.name)
+        map.annotation.layers.active = gpl
+       
         print("TEST",gpl)
         collection_pointer.annotation = gpl
         
