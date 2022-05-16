@@ -303,12 +303,22 @@ class DM_UL_Floorlist(bpy.types.UIList):
         ob = data
         slot = item
         ma = slot.name
+
+
+        dm_property = context.scene.dm_property
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            split = layout.split(factor=0.3)
             if ma:
-                layout.prop(slot, "name", text="", emboss=False, icon_value=icon)
+                map = dm_property.maplist[dm_property.maplist_data_index]
+                try:
+                    layer = map.annotation.layers[ma]
+                    split.prop(layer, "color", text ="")
+                except:
+                    split.label(text ="no layer assigned")
+                split.prop(slot, "name", text="", emboss=False, icon_value=icon)
             else:
-                layout.label(text="", translate=False, icon_value=icon)
+                split.label(text="", translate=False, icon_value=icon)
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'

@@ -308,6 +308,10 @@ class MAP_add(bpy.types.Operator):
         #context.scene.grease_pencil.new(name = collection.name)
         gpd = context.annotation_data
         gpd.name = collection.name
+        try:
+            gpd.layers.remove(gpd.layers["Note"])
+        except:
+            print("no layer Note")
         collection_pointer = dm_prop.maplist.add()
         collection_pointer.annotation = gpd
         collection_pointer.map = collection
@@ -358,6 +362,7 @@ class FLOOR_add(bpy.types.Operator):
         collection_pointer.name = collection.name
 
         gpl = map.annotation.layers.new(name = collection.name)
+        gpl.color = (0,0,0)
         map.annotation.layers.active = gpl
        
         print("TEST",gpl)

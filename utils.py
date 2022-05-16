@@ -243,7 +243,6 @@ def update_players(self,context, collection):
 
 def update_maps(self,context, collection):
     dm_property = context.scene.dm_property
-    dm_property.maps_coll = collection
 
     for map in dm_property.maplist:
             map.floorlist.clear()
@@ -262,6 +261,11 @@ def update_maps(self,context, collection):
                 bpy.ops.gpencil.annotation_add()
                 map_pointer.annotation = context.annotation_data
                 map_pointer.annotation.name = map.name
+                try:
+                    map_pointer.annotation.layers.remove(map_pointer.annotation.layers["Note"])
+                except:
+                    print("no layer Note")
+                    
 
 
         for floor in map.children:
@@ -272,7 +276,14 @@ def update_maps(self,context, collection):
             try:
                 map_pointer.annotation.layers[floor.name]
             except:
-                map_pointer.annotation.layers.new(name = floor.name)    
+                layer = map_pointer.annotation.layers.new(name = floor.name)
+                layer.color = (0,0,0)    
+    
+        # map = dm_property.maplist[dm_property.maplist_data_index]
+        # floor = map.floorlist[map.floorlist_data_index]
+        # context.scene.grease_pencil = map.annotation
+        # context.scene.grease_pencil.layers.active = context.scene.grease_pencil.layers[floor.name]
+
 def delete_hierarchy(obj):
     names = set([obj.name])
     
@@ -322,7 +333,7 @@ def selectFloor(self, context):
 
         for layer in map.annotation.layers:
             layer.annotation_hide = True
-
+        context.scene.grease_pencil = map.annotation
         map.annotation.layers.active =  map.annotation.layers[self.floorlist[self.floorlist_data_index].name]
         map.annotation.layers.active.annotation_hide = False
 
