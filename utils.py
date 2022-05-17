@@ -277,7 +277,7 @@ def update_maps(self,context, collection):
                 map_pointer.annotation.layers[floor.name]
             except:
                 layer = map_pointer.annotation.layers.new(name = floor.name)
-                layer.color = (0,0,0)    
+                layer.color = (1,1,1)    
     
         # map = dm_property.maplist[dm_property.maplist_data_index]
         # floor = map.floorlist[map.floorlist_data_index]
@@ -319,6 +319,9 @@ def selectMap(self, context):
     if self.maplist_data_index != -1:
         for item in self.maplist:
             item.map.hide_viewport = True
+        map = self.maplist[self.maplist_data_index]
+        if len(map.floorlist) > 0:
+            map.floorlist_data_index = 0
         self.maplist[self.maplist_data_index].map.hide_viewport = False
         context.scene.grease_pencil = self.maplist[self.maplist_data_index].annotation
 
@@ -348,3 +351,4 @@ def addToCollection(self,context, collectionName, obj):
     else:
         collection = bpy.data.collections.get(collectionName)
     collection.objects.link(obj)
+    return collection

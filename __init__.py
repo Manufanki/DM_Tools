@@ -151,22 +151,32 @@ class PLAYER_add(bpy.types.Operator):
         list.append(spotDark)
         
         
-        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 5), rotation=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1))
         torch = bpy.context.object
         torch.name = "Torch"
         torch.parent = player
-        torch.data.energy = 10000
+        torch.data.energy = 40000
         torch.data.shadow_soft_size = 9.144
         torch.data.color = (0, 0, 1)
-        torch.data.use_shadow = False
+        torch.data.use_shadow = True
         torch.data.use_custom_distance = True
         torch.data.cutoff_distance = 18.288
         player_property.torch = torch
         list.append(torch)
 
         for obj in list:
-            addToCollection(self, context, "Player", obj)
+            player_property.player_coll = addToCollection(self, context, player.name, obj)
+        
+        if bpy.data.collections.get("Player") is None:
+            collection = bpy.data.collections.new("Player")
+            bpy.context.scene.collection.children.link(collection)
+            collection.children.link(player_property.player_coll)
 
+        else:
+            collection = bpy.data.collections.get("Player")   
+            collection.children.link(player_property.player_coll)
+        if bpy.context.scene.collection.children.get(player_property.player_coll.name):
+            bpy.context.scene.collection.children.unlink(player_property.player_coll)
         spot.hide_select = True
         torch.hide_set(True)
         torch.hide_select = True
@@ -221,7 +231,7 @@ class ENEMY_add(bpy.types.Operator):
 
     def execute(self, context):
         dm_prop = bpy.context.scene.dm_property
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=2, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=0.5, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
         enemy = bpy.context.object
         list = []
         list.append(enemy)
@@ -362,7 +372,7 @@ class FLOOR_add(bpy.types.Operator):
         collection_pointer.name = collection.name
 
         gpl = map.annotation.layers.new(name = collection.name)
-        gpl.color = (0,0,0)
+        gpl.color = (1,1,1)
         map.annotation.layers.active = gpl
        
         print("TEST",gpl)

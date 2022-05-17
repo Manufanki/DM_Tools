@@ -275,6 +275,7 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
                 split.prop(slot, "name", text="", emboss=False, icon_value=icon)
             else:
                 split.label(text="", translate=False, icon_value=icon)
+            split.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -401,6 +402,10 @@ class PLAYER_List_Button(bpy.types.Operator):
             if index >= 0 and index < len(list):
                 player = list[index].player
                 player.player_property.distance_circle.parent = player
+                try:
+                    bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)
+                except:
+                    print("no collection to unlink")
                 delete_hierarchy(player)
                 list.remove(index)
                 index = min(index, len(list)-1)
@@ -517,9 +522,9 @@ class Floor_List_Button(bpy.types.Operator):
         if self.menu_active == 7:
             if index >= 0 and index < len(list):
                 collection = list[index].floor
-                for obj in collection.all_objects:
-                    bpy.data.objects.remove(obj, do_unlink=True)
-                dm_property.maplist[dm_property.maplist_data_index].map.children.unlink(collection)
+                map = dm_property.maplist[dm_property.maplist_data_index]
+                map.map.children.unlink(collection)
+                map.annotation.layers.remove( map.annotation.layers[list[index].floor.name])
                 list.remove(index)
                 index = min(index, len(list)-1)
         return {"FINISHED"}      

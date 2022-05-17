@@ -33,7 +33,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         distance = unit_to_bu(unit_dist,unitinfo[1])
         self.distance_circle.dimensions = (distance,distance,self.distance_circle.dimensions.z)
 
-
+    player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     move_distance : bpy.props.FloatProperty(
         #name = "MOVE_DISTANCE",
         description = "Distance in Meter the Player can move in one Turn",
