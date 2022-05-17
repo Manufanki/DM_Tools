@@ -11,6 +11,7 @@ Automaticly generated field of view for each player.
 
 
 You can set the movement distance for each player. A green circle indicates the area in which the player can move in one turn.
+
 ![biggif_example](/doc/walk_distance.gif) 
 <br/>
 
@@ -23,14 +24,17 @@ There is also an option to change the lighting of the playing field. In daylight
 # Create Maps
 The addon offers the possibility to add maps to your scene. Each map can consist of several floors. In this example, the map shows a house with two floors.
 When a player goes to the upper floor, you can easily change the floor. 
+
 ![biggif_example](/doc/floors.gif) 
 <br/>
 
 If you want to mark certain points on your floor, such as traps or enemy positions, you can use the annotation tool. Each floor has its own annotation layer and is automatically activated with the floor.
+
 ![biggif_example](/doc/annotations.gif) 
 <br/>
 
 You can save all your maps in a blend file and when the game moves to another location, you just have to select another map.   
+
 ![biggif_example](/doc/maps.gif) 
 <br/>
 
