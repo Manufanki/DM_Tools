@@ -14,6 +14,7 @@ You can set up the move distance for each player. A green circle shows the area 
 
 
 There is also the possibility to change the light of the scnene. On daylight the players can see as far as the screen allows, but on night players are blind if they dont have nightvision or using a torch.
+
 ![biggif_example](/doc/day_night.gif) 
 <br/>
 
@@ -24,11 +25,11 @@ If one player goes upstairs you can easyíly switch the floor.
 <br/>
 
 If you want to mark specific points on your floor, like traps or enemy locations you can use the annotation tool each floor has their own annotation layer and is automaticly activated with the floor.  
-![biggif_example](/doc/annotation.gif) 
+![biggif_example](/doc/annotations.gif) 
 <br/>
 
 You can store all your maps in one blend file and when the games switches to another locatiom you just have to select another map.   
-![biggif_example](/doc/mpas.gif) 
+![biggif_example](/doc/maps.gif) 
 <br/>
 
 # Installation
