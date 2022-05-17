@@ -5,6 +5,7 @@ What makes DM_Tools unique is that each player has their own field of view. The 
 
 # Player
 Automaticly generated field of view for each player.
+
 ![biggif_example](/doc/field_of_view.gif) 
 <br/>
 
