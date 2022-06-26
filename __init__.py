@@ -22,6 +22,7 @@ from bpy_extras.io_utils import ImportHelper
 from . utils import *
 from . ui import *
 from . properties import *
+from . import_images import *
 #endregion Methods     
 
 #region Operatior
@@ -534,7 +535,7 @@ class CAMERA_panning(bpy.types.Operator):
 
 class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
     """Create Walls with Geometry Nodes"""
-    bl_idname = "mesh.wall_add"
+    bl_idname = "mesh.geowall_add"
     bl_label = "Add Walls"
     def execute(self,context):
         bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
@@ -602,31 +603,13 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
     bl_label = "Import Map Image"
 
     # ImportHelper mixin class uses this
-    filename_ext = ".png"
+    filename_ext = ".png;.jpg;.gif;.tif"
 
     filter_glob: bpy.props.StringProperty(
         default="*.png;*.jpg;*.gif;*.tif",
         options={'HIDDEN'},
         maxlen=255,  # Max internal buffer length, longer would be clamped.
     )
-
-    # List of operator properties, the attributes will be assigned
-    # to the class instance from the operator settings before calling.
-    # use_setting: bpy.props.BoolProperty(
-    #     name="Example Boolean",
-    #     description="Example Tooltip",
-    #     default=True,
-    # )
-
-    # type: bpy.props.EnumProperty(
-    #     name="Example Enum",
-    #     description="Choose between two items",
-    #     items=(
-    #         ('OPT_A', "First Option", "Description one"),
-    #         ('OPT_B', "Second Option", "Description two"),
-    #     ),
-    #     default='OPT_A',
-    #)
 
     def execute(self, context):
         image = bpy.data.images.load(self.filepath)
@@ -778,6 +761,7 @@ blender_classes = [
 
 # Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
 def register():
+    import_images.register()
     properties.register()
     ui.register()
     for blender_class in blender_classes:
@@ -797,6 +781,7 @@ def register():
 def unregister():
     properties.unregister()
     ui.unregister()
+    import_images.unregister()
     for blender_class in blender_classes:
         bpy.utils.unregister_class(blender_class)    
         

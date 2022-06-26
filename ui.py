@@ -231,12 +231,12 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
                 if len(map.floorlist) > 0:
                     col = layout.column()
                     col.label(text="Add Map")
-                    col.operator("import_mesh.map_image", icon="IMAGE_DATA")
+                    col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
                     col.operator("mesh.map_scale", icon="SETTINGS")    
 
 
                     col.label(text="Add Geometry")
-                    col.operator("mesh.wall_add", icon="MOD_BUILD")
+                    col.operator("mesh.geowall_add", icon="MOD_BUILD")
                     col.operator("mesh.cave_add") 
                     col.operator("mesh.pillar_add",icon="MESH_CYLINDER") 
                     col.label(text="Add Light")

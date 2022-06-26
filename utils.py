@@ -171,6 +171,7 @@ def CreateDistanceMaterial(self, context, color):
     material_dist.node_tree.links.new(emit_node.outputs[0], shaderMix_node.inputs[1])
     material_dist.node_tree.links.new(transparent_node.outputs[0], shaderMix_node.inputs[2])
     material_dist.node_tree.links.new(shaderMix_node.outputs[0], material_out.inputs[0])
+    material_dist.use_backface_culling = True
 
     material_dist.shadow_method = 'NONE'
     material_dist.blend_method = 'BLEND'
