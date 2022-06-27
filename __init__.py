@@ -8,7 +8,7 @@ bl_info = {
     "wiki_url" : "",
     "category" : "",
 }
- 
+
 import bpy
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
@@ -71,6 +71,7 @@ class PLAYER_add(bpy.types.Operator):
         unit_dist = self.tmp_move_distance
         self.tmp_move_distance = unit_to_bu(unit_dist,unitinfo[1])
 
+    tmp_is_enemy : bpy.props.BoolProperty(name ="Enemy", default= False)
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "player")
     tmp_darkvision : bpy.props.FloatProperty(name = "See in Dark", default= 0,update=update_tmp_move_distance)
     tmp_move_distance : bpy.props.FloatProperty(name = "Move in Turn", default= 9,update=update_tmp_move_distance)
@@ -84,7 +85,6 @@ class PLAYER_add(bpy.types.Operator):
         max=1,
         #update=update_player_color,  # some sort of connected update method?
     )
-
     def invoke(self, context, event):
                 
         return context.window_manager.invoke_props_dialog(self)
@@ -92,7 +92,11 @@ class PLAYER_add(bpy.types.Operator):
     def execute(self, context):
         dm_prop = bpy.context.scene.dm_property
         
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=2, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
+
+        player_height = 2
+        if self.tmp_is_enemy == True:
+            player_height = 0.5
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
         player = bpy.context.object
         list = []
         list.append(player)
@@ -103,12 +107,14 @@ class PLAYER_add(bpy.types.Operator):
         player.data.vertices[0].co.y += 0.3
         player.data.vertices[1].co.y += 0.3
 
-        player_pointer = dm_prop.playerlist.add()
+        player_pointer = dm_prop.characterlist.add()
+        player_pointer.character = player
+
         player_property.name = self.tmp_name
         player_property.move_distance = self.tmp_move_distance
         player_property.player_color = self.tmp_player_color
-        player_pointer.player = player
-
+        player_property.is_enemy = self.tmp_is_enemy
+        
         player_property.player_material = CreatePlayerMaterial(self, context, self.tmp_player_color)
         player.data.materials.append(player_property.player_material)
         player.lock_location = (False, False, True)
@@ -125,31 +131,41 @@ class PLAYER_add(bpy.types.Operator):
         distance_circel.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         list.append(distance_circel)
 
+        if player_property.is_enemy == False:
+            bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+            spot = bpy.context.object
+            spot.name = "Player Vision Day"
+            spot.parent = player
+            spot.data.spot_size = 1.74
+            spot.data.shadow_soft_size = 100
+            spot.data.energy = 500000
+            spot.data.spot_blend = 1
+            spot.data.color = (1, 0, 0)
+            list.append(spot)
 
-        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
-        spot = bpy.context.object
-        spot.name = "Player Vision Day"
-        spot.parent = player
-        spot.data.spot_size = 1.74
-        spot.data.shadow_soft_size = 100
-        spot.data.energy = 500000
-        spot.data.spot_blend = 1
-        spot.data.color = (1, 0, 0)
-        list.append(spot)
+            bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+            point = bpy.context.object
+            point.name = "Player Vision Day Point"
+            point.parent = player
+            point.data.shadow_soft_size = 3
+            point.data.energy = 5000
+            point.data.color = (1, 0, 0)
+            list.append(point)
 
-        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
-        spotDark = bpy.context.object
-        spotDark.name = "Player Vision Dark"
-        spotDark.parent = player
-        spotDark.data.spot_size = 1.74
-        spotDark.data.shadow_soft_size = 100
-        spotDark.data.energy = 500000
-        spotDark.data.color = (0, 0, 1)
-        spotDark.data.spot_blend = 1
-        spotDark.data.use_shadow = False
-        spotDark.data.use_custom_distance = True
-        spotDark.data.cutoff_distance = self.tmp_darkvision
-        list.append(spotDark)
+
+            bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+            spotDark = bpy.context.object
+            spotDark.name = "Player Vision Dark"
+            spotDark.parent = player
+            spotDark.data.spot_size = 1.74
+            spotDark.data.shadow_soft_size = 100
+            spotDark.data.energy = 500000
+            spotDark.data.color = (0, 0, 1)
+            spotDark.data.spot_blend = 1
+            spotDark.data.use_shadow = False
+            spotDark.data.use_custom_distance = True
+            spotDark.data.cutoff_distance = self.tmp_darkvision
+            list.append(spotDark)
         
         
         bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1))
@@ -178,11 +194,14 @@ class PLAYER_add(bpy.types.Operator):
             collection.children.link(player_property.player_coll)
         if bpy.context.scene.collection.children.get(player_property.player_coll.name):
             bpy.context.scene.collection.children.unlink(player_property.player_coll)
-        spot.hide_select = True
+        
         torch.hide_set(True)
         torch.hide_select = True
-        spotDark.hide_select = True
-        player_property.spot_dark = spotDark.data
+        if player_property.is_enemy == False:
+            point.hide_select = True
+            spot.hide_select = True
+            spotDark.hide_select = True
+            player_property.spot_dark = spotDark.data
         distance_circel.hide_select = True
         distance_circel.hide_set(True)
         bpy.context.view_layer.objects.active = player
@@ -202,96 +221,6 @@ class PLAYER_update(bpy.types.Operator):
             collection = bpy.data.collections.get("Player")
             update_players(self,context,collection)
         return {'FINISHED'}
-
-class ENEMY_add(bpy.types.Operator):
-    "Add Player Mesh and Lights to the Scene"
-    bl_idname = "enemy.dnd_add"
-    bl_label = "Add Enemy"
-    
-    def update_tmp_move_distance(self, context):
-        unitinfo = GetCurrentUnits()
-        unit_dist = self.tmp_move_distance
-        self.tmp_move_distance = unit_to_bu(unit_dist,unitinfo[1])
-
-    tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "enemy")
-    tmp_move_distance : bpy.props.FloatProperty(name = "Move in Turn", default= 9,update=update_tmp_move_distance)
-    tmp_enemy_color: bpy.props.FloatVectorProperty(
-        name="player_color",
-        description="Default cell color in RGBA. Can be overwritten by creating your own material named 'custom_default_material'",
-        size=4,
-        subtype="COLOR",
-        default=(1, 1, 1, 1),
-        min=0,
-        max=1,
-        #update=update_player_color,  # some sort of connected update method?
-    )
-
-    def invoke(self, context, event):
-                
-        return context.window_manager.invoke_props_dialog(self)
-
-    def execute(self, context):
-        dm_prop = bpy.context.scene.dm_property
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=0.5, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
-        enemy = bpy.context.object
-        list = []
-        list.append(enemy)
-
-        enemy.name = self.tmp_name
-        enemy_propery = enemy.enemy_property
-        enemy.data.vertices[0].co.y += 0.3
-        enemy.data.vertices[1].co.y += 0.3
-
-        enemy_pointer = dm_prop.enemylist.add()
-        enemy_propery.name = self.tmp_name
-        enemy_propery.move_distance = self.tmp_move_distance
-        enemy_propery.enemy_color = self.tmp_enemy_color
-        enemy_pointer.enemy = enemy
-
-        enemy_propery.enemy_material = CreatePlayerMaterial(self, context, self.tmp_enemy_color)
-
-        enemy.data.materials.append(enemy_propery.enemy_material)
-        enemy.lock_location = (False, False, True)
-        enemy.lock_rotation = (True, True, False)
-        
-        bpy.ops.mesh.primitive_cylinder_add(radius= 1, depth=2, enter_editmode=False, align='WORLD', location=(0, 0, 1), scale=(1, 1, 1))
-        distance_circel = bpy.context.object
-        distance_circel.name = "Distance Circle"
-        distance_circel.parent = enemy
-        distance_circel.lock_location = (False, False, True)
-        enemy_propery.distance_circle = distance_circel
-        enemy_propery.move_distance = enemy_propery.move_distance
-       
-        distance_circel.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
-        list.append(distance_circel)
-
-        for obj in list:
-            addToCollection(self, context, "Enemy", obj)
-        
-        distance_circel.hide_set(True)
-        distance_circel.hide_select = True
-        bpy.context.view_layer.objects.active = enemy
-        enemy.select_set(True)
-
-        return {'FINISHED'}
-
-class ENEMY_Distance_Button(bpy.types.Operator):
-    bl_idname = "enemy.distance_toggle"
-    bl_label = "Toggle Visibility of Distance Circle"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        if context.object.enemy_property.distance_circle.hide_get():
-            context.object.enemy_property.distance_circle.parent = None
-            context.object.enemy_property.distance_circle.hide_set(False)
-        else:
-            context.object.enemy_property.distance_circle.parent = context.object
-            context.object.enemy_property.distance_circle.hide_set(True)
-        loc = context.object.location
-        loc.z = context.object.enemy_property.distance_circle.location.z
-        context.object.enemy_property.distance_circle.location = loc
-        return {"FINISHED"} 
 
 class MAP_add(bpy.types.Operator):
     "Add Map Collection to the Scene"
@@ -511,7 +440,7 @@ class CAMERA_zoom(bpy.types.Operator):
     def execute(self, context):
         dm_property = context.scene.dm_property
         camera = dm_property.camera
-        
+        dm_property.camera_zoom_toggle = not dm_property.camera_zoom_toggle
         camera.data.ortho_scale = self.scale
 
         return {'FINISHED'}
@@ -738,11 +667,9 @@ blender_classes = [
     PLAYER_Torch_Button,
     PLAYER_add,
     PLAYER_update,
-    ENEMY_add,
     MAP_add,
     MAP_update,
     FLOOR_add,
-    ENEMY_Distance_Button,
     SCENE_Setup,
     SCENE_Grid_Setup,
     CAMERA_add,
@@ -771,7 +698,6 @@ def register():
 
     bpy.types.Scene.dm_property = bpy.props.PointerProperty(type = DMProperties)    
     bpy.types.Object.player_property = bpy.props.PointerProperty(type = PlayerProperties)
-    bpy.types.Object.enemy_property = bpy.props.PointerProperty(type = EnemyProperties)
     bpy.types.GreasePencil.map_property = bpy.props.PointerProperty(type = MapPointerProperties)
     bpy.types.GreasePencilLayers.floor_property = bpy.props.PointerProperty(type = FloorPointerProperties)
 

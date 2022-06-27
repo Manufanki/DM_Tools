@@ -233,11 +233,11 @@ def CreateExtrudeGeoNode(self, context,obj):
 def update_players(self,context, collection):
     dm_property = context.scene.dm_property
 
-    dm_property.playerlist.clear()
+    dm_property.characterlist.clear()
 
     for player in collection.all_objects:
         if player.player_property.name != "":
-                player_pointer = dm_property.playerlist.add()
+                player_pointer = dm_property.characterlist.add()
                 player_pointer.player = player
                 player_pointer.player_property = player.player_property
 
@@ -300,21 +300,20 @@ def delete_hierarchy(obj):
     for n in names:
         bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
 
-def selectEnemy(self, context):
+def selectCharacter(self, context):
     bpy.ops.object.select_all(action='DESELECT')
-    if self.enemylist_data_index != -1:
-        for en in self.enemylist:
-            en.enemy.select_set(False)
-        self.enemylist[self.enemylist_data_index].enemy.select_set(True)
-        bpy.context.view_layer.objects.active =  self.enemylist[self.enemylist_data_index].enemy
+    if self.characterlist_data_index != -1:
+        for char in self.characterlist:
+            char.character.select_set(False)
+        self.characterlist[self.characterlist_data_index].character.select_set(True)
+        bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].character
 
-def selectPlayer(self, context):
-    bpy.ops.object.select_all(action='DESELECT')
-    if self.playerlist_data_index != -1:
-        for pl in self.playerlist:
-            pl.player.select_set(False)
-        self.playerlist[self.playerlist_data_index].player.select_set(True)
-        bpy.context.view_layer.objects.active =  self.playerlist[self.playerlist_data_index].player
+def adjustCamera(self, context):
+    if self.camera_zoom_toggle:
+        self.camera.data.ortho_scale = self.camera_zoom_in
+    else:
+        self.camera.data.ortho_scale = self.camera_zoom_out
+
 
 def selectMap(self, context):
     if self.maplist_data_index != -1:

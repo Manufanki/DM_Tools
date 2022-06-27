@@ -16,8 +16,8 @@ class MapPointerProperties(bpy.types.PropertyGroup):
     annotation : bpy.props.PointerProperty(type=bpy.types.GreasePencil)
 
 
-class PlayerPointerProperties(bpy.types.PropertyGroup):
-    player : bpy.props.PointerProperty(type=bpy.types.Object)
+class CharacterPointerProperties(bpy.types.PropertyGroup):
+    character : bpy.props.PointerProperty(type=bpy.types.Object)
 
 class PlayerProperties(bpy.types.PropertyGroup):
 
@@ -34,6 +34,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         self.distance_circle.dimensions = (distance,distance,self.distance_circle.dimensions.z)
 
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
+    is_enemy : bpy.props.BoolProperty()
     move_distance : bpy.props.FloatProperty(
         #name = "MOVE_DISTANCE",
         description = "Distance in Meter the Player can move in one Turn",
@@ -57,68 +58,73 @@ class PlayerProperties(bpy.types.PropertyGroup):
         max=1,
         update=update_player_color,  # some sort of connected update method?
     )
-    player : bpy.props.PointerProperty(type=bpy.types.Object)
-
-class EnemyPointerProperties(bpy.types.PropertyGroup):
-    enemy : bpy.props.PointerProperty(type=bpy.types.Object)
-
-class EnemyProperties(bpy.types.PropertyGroup):
-
-    def update_enemy_color(self, context):
-        if self.enemy_material != None:
-            #print(self.player_material.node_tree.nodes.get('RGB'))
-            rgb_node = self.enemy_material.node_tree.nodes.get('RGB')
-            rgb_node.outputs[0].default_value = self.enemy_color
-    def update_move_distance(self,context):
-        unitinfo = GetCurrentUnits()
-        unit_dist = self.move_distance*2
-        distance = unit_to_bu(unit_dist,unitinfo[1])
-        self.distance_circle.dimensions = (distance,distance,self.distance_circle.dimensions.z)
-
-
-    move_distance : bpy.props.FloatProperty(
-        #name = "MOVE_DISTANCE",
-        description = "Distance in Meter the Player can move in one Turn",
-        default = 9,
-        min = 1,
-        max = 100,
-        update=update_move_distance
+    strength : bpy.props.IntProperty(
+    name="STR",
+    description="STR",
+    default= 0,
+    min=0,
     )
-    distance_circle : bpy.props.PointerProperty(type=bpy.types.Object)
-    enemy_material : bpy.props.PointerProperty(type=bpy.types.Material)
-    #name : bpy.props.StringProperty()
-    enemy_color: bpy.props.FloatVectorProperty(
-        name="Enemy_color",
-        description="Enemy color in RGBA.",
-        size=4,
-        subtype="COLOR",
-        default=(1, 1, 1, 1),
-        min=0,
-        max=1,
-        update=update_enemy_color,  # some sort of connected update method?
+    dexterity : bpy.props.IntProperty(
+    name="DEX",
+    description="DEX",
+    default= 0,
+    min=0,
     )
+    constitution : bpy.props.IntProperty(
+    name="CON",
+    description="constitution",
+    default= 0,
+    min=0,
+    )
+    intelligence : bpy.props.IntProperty(
+    name="INT",
+    description="intelligence",
+    default= 0,
+    min=0,
+    )
+    wisdom : bpy.props.IntProperty(
+    name="WIS",
+    description="wisdom",
+    default= 0,
+    min=0,
+    )
+    charisma : bpy.props.IntProperty(
+    name="CHA",
+    description="charisma",
+    default= 0,
+    min=0,
+    )
+
+
     health_points : bpy.props.IntProperty(
-        name="Enemy_health_points",
-        description="Enemy color in RGBA.",
-        default= 20,
-        min=0,
-        )
-    enemy : bpy.props.PointerProperty(type=bpy.types.Object)
+    name="health_points",
+    description="HP",
+    default= 20,
+    min=0,
+    )
+    armor_class : bpy.props.IntProperty(
+    name="armor_class",
+    description="AC",
+    default= 10,
+    min=0,
+    )
+    attack_bonus : bpy.props.IntProperty(
+    name="attak_bonus",
+    description="Bonus",
+    default= 0,
+    min=0,
+    )
+    player : bpy.props.PointerProperty(type=bpy.types.Object)
 
 class DMProperties(bpy.types.PropertyGroup):
 
 
     is_setup : bpy.props.BoolProperty(default=False)
 
-    playerlist_data_index : bpy.props.IntProperty(
-        update=selectPlayer
+    characterlist_data_index : bpy.props.IntProperty(
+        update=selectCharacter
     )
-    playerlist : bpy.props.CollectionProperty(type = PlayerPointerProperties)
-
-    enemylist_data_index : bpy.props.IntProperty(
-        update=selectEnemy
-    )
-    enemylist : bpy.props.CollectionProperty(type = EnemyPointerProperties)
+    characterlist : bpy.props.CollectionProperty(type = CharacterPointerProperties)
 
     maplist_data_index : bpy.props.IntProperty(
         update=selectMap
@@ -126,6 +132,15 @@ class DMProperties(bpy.types.PropertyGroup):
     maplist : bpy.props.CollectionProperty(type = MapPointerProperties)
    
     camera :  bpy.props.PointerProperty(type=bpy.types.Object)
+    camera_zoom_in : bpy.props.FloatProperty(
+        default= 35,
+        update=adjustCamera
+    )
+    camera_zoom_out : bpy.props.FloatProperty(
+        default= 80,
+        update=adjustCamera
+    )
+    camera_zoom_toggle : bpy.props.BoolProperty()
     camera_pan_toggle : bpy.props.BoolProperty()
     global_Sun : bpy.props.PointerProperty(type=bpy.types.SunLight)
     
@@ -138,9 +153,7 @@ blender_classes = [
     PlayerProperties,    
     FloorPointerProperties,
     MapPointerProperties,
-    PlayerPointerProperties,
-    EnemyProperties,
-    EnemyPointerProperties,
+    CharacterPointerProperties,
     DMProperties
     ]
 def register():
