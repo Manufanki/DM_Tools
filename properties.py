@@ -31,9 +31,19 @@ class PlayerProperties(bpy.types.PropertyGroup):
         unitinfo = GetCurrentUnits()
         unit_dist = self.move_distance*2
         distance = unit_to_bu(unit_dist,unitinfo[1])
+        distance += 1.5
         self.distance_circle.dimensions = (distance,distance,self.distance_circle.dimensions.z)
 
+    def update_darkvision(self,context):
+        unitinfo = GetCurrentUnits()
+        unit_dist = self.darkvision
+        distance = unit_to_bu(unit_dist,unitinfo[1])
+        distance += 1.5
+        self.spot_dark.cutoff_distance = distance
+        self.point_dark.cutoff_distance = distance
+
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
+    light_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     is_enemy : bpy.props.BoolProperty()
     move_distance : bpy.props.FloatProperty(
         #name = "MOVE_DISTANCE",
@@ -45,7 +55,16 @@ class PlayerProperties(bpy.types.PropertyGroup):
     )
     distance_circle : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
+    darkvision : bpy.props.FloatProperty(
+        #name = "MOVE_DISTANCE",
+        description = "Distance in Meter the Player can see in the dark",
+        default = 0,
+        min = 0,
+        max = 100,
+        update=update_darkvision
+    )
     spot_dark : bpy.props.PointerProperty(type=bpy.types.SpotLight)
+    point_dark : bpy.props.PointerProperty(type=bpy.types.PointLight)
     player_material : bpy.props.PointerProperty(type=bpy.types.Material)
     #name : bpy.props.StringProperty()
     player_color: bpy.props.FloatVectorProperty(
@@ -58,6 +77,14 @@ class PlayerProperties(bpy.types.PropertyGroup):
         max=1,
         update=update_player_color,  # some sort of connected update method?
     )
+    list_index : bpy.props.IntProperty(
+    name="index",
+    description="index",
+    default= 0,
+    min=0,
+    )
+
+
     strength : bpy.props.IntProperty(
     name="STR",
     description="STR",

@@ -40,8 +40,7 @@ class PLAYER_Distance_Button(bpy.types.Operator):
             context.object.player_property.distance_circle.parent = context.object
             context.object.player_property.distance_circle.hide_set(True)
         loc = context.object.location
-        loc.z = context.object.player_property.distance_circle.location.z
-        context.object.player_property.distance_circle.location = loc
+        context.object.player_property.distance_circle.location = (loc.x, loc.y, 3)
         return {"FINISHED"} 
 
 class PLAYER_Torch_Button(bpy.types.Operator):
@@ -62,29 +61,10 @@ class PLAYER_add(bpy.types.Operator):
     bl_idname = "player.dnd_add"
     bl_label = "Add Player"
     
-    def update_tmp_darkvision(self, context):
-        unitinfo = GetCurrentUnits()
-        unit_dist = self.tmp_darkvision
-        self.tmp_darkvision = unit_to_bu(unit_dist,unitinfo[1])
-    def update_tmp_move_distance(self, context):
-        unitinfo = GetCurrentUnits()
-        unit_dist = self.tmp_move_distance
-        self.tmp_move_distance = unit_to_bu(unit_dist,unitinfo[1])
 
-    tmp_is_enemy : bpy.props.BoolProperty(name ="Enemy", default= False)
+    tmp_is_enemy : bpy.props.BoolProperty(name ="Disable Field of View", default= False)
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "player")
-    tmp_darkvision : bpy.props.FloatProperty(name = "See in Dark", default= 0,update=update_tmp_move_distance)
-    tmp_move_distance : bpy.props.FloatProperty(name = "Move in Turn", default= 9,update=update_tmp_move_distance)
-    tmp_player_color: bpy.props.FloatVectorProperty(
-        name="player_color",
-        description="Default cell color in RGBA. Can be overwritten by creating your own material named 'custom_default_material'",
-        size=4,
-        subtype="COLOR",
-        default=(1, 1, 1, 1),
-        min=0,
-        max=1,
-        #update=update_player_color,  # some sort of connected update method?
-    )
+
     def invoke(self, context, event):
                 
         return context.window_manager.invoke_props_dialog(self)
@@ -98,8 +78,9 @@ class PLAYER_add(bpy.types.Operator):
             player_height = 0.5
         bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
         player = bpy.context.object
-        list = []
-        list.append(player)
+        component_list = []
+        light_list = []
+        component_list.append(player)
 
 
         player.name = self.tmp_name
@@ -110,12 +91,11 @@ class PLAYER_add(bpy.types.Operator):
         player_pointer = dm_prop.characterlist.add()
         player_pointer.character = player
 
+        player_property.list_index = dm_prop.characterlist_data_index
         player_property.name = self.tmp_name
-        player_property.move_distance = self.tmp_move_distance
-        player_property.player_color = self.tmp_player_color
         player_property.is_enemy = self.tmp_is_enemy
         
-        player_property.player_material = CreatePlayerMaterial(self, context, self.tmp_player_color)
+        player_property.player_material = CreatePlayerMaterial(self, context, (1,1,1,1))
         player.data.materials.append(player_property.player_material)
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
@@ -129,43 +109,58 @@ class PLAYER_add(bpy.types.Operator):
         player_property.distance_circle = distance_circel
         player_property.move_distance = player_property.move_distance
         distance_circel.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
-        list.append(distance_circel)
+        component_list.append(distance_circel)
 
-        if player_property.is_enemy == False:
-            bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
-            spot = bpy.context.object
-            spot.name = "Player Vision Day"
-            spot.parent = player
-            spot.data.spot_size = 1.74
-            spot.data.shadow_soft_size = 100
-            spot.data.energy = 500000
-            spot.data.spot_blend = 1
-            spot.data.color = (1, 0, 0)
-            list.append(spot)
+        
+        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        spot = bpy.context.object
+        spot.name = "Player Vision Day"
+        spot.parent = player
+        spot.data.spot_size = 1.74
+        spot.data.shadow_soft_size = 100
+        spot.data.energy = 500000
+        spot.data.spot_blend = 1
+        spot.data.color = (1, 0, 0)
+        component_list.append(spot)
+        light_list.append(spot)
 
-            bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
-            point = bpy.context.object
-            point.name = "Player Vision Day Point"
-            point.parent = player
-            point.data.shadow_soft_size = 3
-            point.data.energy = 5000
-            point.data.color = (1, 0, 0)
-            list.append(point)
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        point = bpy.context.object
+        point.name = "Player Vision Day Point"
+        point.parent = player
+        point.data.shadow_soft_size = 2.5
+        point.data.energy = 500
+        point.data.color = (1, 0, 0)
+        component_list.append(point)
+        light_list.append(point)
 
 
-            bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
-            spotDark = bpy.context.object
-            spotDark.name = "Player Vision Dark"
-            spotDark.parent = player
-            spotDark.data.spot_size = 1.74
-            spotDark.data.shadow_soft_size = 100
-            spotDark.data.energy = 500000
-            spotDark.data.color = (0, 0, 1)
-            spotDark.data.spot_blend = 1
-            spotDark.data.use_shadow = False
-            spotDark.data.use_custom_distance = True
-            spotDark.data.cutoff_distance = self.tmp_darkvision
-            list.append(spotDark)
+        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        spotDark = bpy.context.object
+        spotDark.name = "Player Vision Dark"
+        spotDark.parent = player
+        spotDark.data.spot_size = 1.74
+        spotDark.data.shadow_soft_size = 100
+        spotDark.data.energy = 500000
+        spotDark.data.color = (0, 0, 1)
+        spotDark.data.spot_blend = 1
+        spotDark.data.use_shadow = False
+        spotDark.data.use_custom_distance = True
+        spotDark.data.cutoff_distance = 0
+        component_list.append(spotDark)
+        light_list.append(spotDark)
+
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        pointDark = bpy.context.object
+        pointDark.name = "Player Vision Dark Point"
+        pointDark.parent = player
+        pointDark.data.shadow_soft_size = 2.5
+        pointDark.data.energy = 2000
+        pointDark.data.color = (0, 0, 1)
+        pointDark.data.use_custom_distance = True
+        pointDark.data.cutoff_distance = 0
+        component_list.append(pointDark)
+        light_list.append(pointDark)
         
         
         bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1))
@@ -179,11 +174,14 @@ class PLAYER_add(bpy.types.Operator):
         torch.data.use_custom_distance = True
         torch.data.cutoff_distance = 18.288
         player_property.torch = torch
-        list.append(torch)
+        component_list.append(torch)
 
-        for obj in list:
+        for obj in component_list:
             player_property.player_coll = addToCollection(self, context, player.name, obj)
-        
+
+        for obj in light_list:
+            player_property.light_coll = addToCollection(self, context, player.name + "_light", obj)
+                
         if bpy.data.collections.get("Player") is None:
             collection = bpy.data.collections.new("Player")
             bpy.context.scene.collection.children.link(collection)
@@ -192,8 +190,13 @@ class PLAYER_add(bpy.types.Operator):
         else:
             collection = bpy.data.collections.get("Player")   
             collection.children.link(player_property.player_coll)
+
+        player_property.player_coll.children.link( player_property.light_coll)
         if bpy.context.scene.collection.children.get(player_property.player_coll.name):
             bpy.context.scene.collection.children.unlink(player_property.player_coll)
+            bpy.context.scene.collection.children.unlink(player_property.light_coll)
+
+        player_property.light_coll.hide_viewport = player_property.is_enemy
         
         torch.hide_set(True)
         torch.hide_select = True
@@ -201,7 +204,9 @@ class PLAYER_add(bpy.types.Operator):
             point.hide_select = True
             spot.hide_select = True
             spotDark.hide_select = True
+            pointDark.hide_select = True
             player_property.spot_dark = spotDark.data
+            player_property.point_dark = pointDark.data
         distance_circel.hide_select = True
         distance_circel.hide_set(True)
         bpy.context.view_layer.objects.active = player
@@ -220,6 +225,8 @@ class PLAYER_update(bpy.types.Operator):
         else:
             collection = bpy.data.collections.get("Player")
             update_players(self,context,collection)
+
+        bpy.ops.list.list_op(menu_active = 8)
         return {'FINISHED'}
 
 class MAP_add(bpy.types.Operator):
@@ -377,6 +384,10 @@ class SCENE_Setup(bpy.types.Operator):
 
         bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
         dm_property.is_setup = True
+
+        if dm_property.camera is None:
+                bpy.ops.camera.dnd_add()
+
         return {'FINISHED'}
 
 class CAMERA_add(bpy.types.Operator):
@@ -547,7 +558,7 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
         mean = (x + y) /2
         x= x / mean 
         y= y / mean
-        bpy.ops.mesh.primitive_plane_add(size=10, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_plane_add(size=10, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
         map = context.object
         map.dimensions = (x,y,0)
         bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
@@ -599,16 +610,23 @@ class LIGHT_Create_Torch(bpy.types.Operator):
     """Create Torch Light"""
     bl_idname = "light.torch_add"
     bl_label = "Add Torch"
+
+    reveal : bpy.props.BoolProperty(name="reveal")
     def execute(self, context):
-        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 5), rotation=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0.5), rotation=(0, 0, 0), scale=(1, 1, 1))
         torch = bpy.context.object
         torch.name = "Torch"
-        torch.data.energy = 10000
-        torch.data.shadow_soft_size = 9.144
-        torch.data.color = (0, 0, 1)
-        torch.data.use_shadow = False
-        torch.data.use_custom_distance = True
-        torch.data.cutoff_distance = 12.192
+        if self.reveal:
+            torch.data.energy = 35000
+            torch.data.shadow_soft_size = 30
+            torch.data.color = (1,1,1)
+        torch.data.use_shadow = True
+        if not self.reveal:
+            torch.data.color = (0,0,1)
+            torch.data.energy = 10000
+            torch.data.shadow_soft_size = 9.144
+            torch.data.use_custom_distance = True
+            torch.data.cutoff_distance = 12.192
         dm_property = context.scene.dm_property
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, torch)
         bpy.context.view_layer.objects.active = torch

@@ -1,3 +1,4 @@
+from distutils.log import debug
 import bpy
 
 from . utils import *
@@ -103,7 +104,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                     player_property = char.character.player_property
                     layout.prop(player_property, "name")
                     if player_property.is_enemy == False:
-                        layout.prop(player_property.spot_dark, "cutoff_distance", text="Darkvision")
+                        layout.prop(player_property, "darkvision", text="Darkvision")
                     list_row = layout.row()
                     if player_property.distance_circle.hide_get():
                         list_row.operator("player.distance_toggle", text="", icon="HIDE_ON")
@@ -121,30 +122,51 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                         list1_row.operator("player.torch", text="", icon="HIDE_OFF")
                         list1_row.label(text="Use Torch")
                         list1_row.prop(player_property.torch.data, "cutoff_distance", text="")
-                    list2_col = layout.column()
-                    list2_col.prop(player_property,"health_points")
-                    list2_col.prop(player_property,"armor_class")
-                    list2_col.prop(player_property,"attack_bonus")
-                    list2_row = layout.row()
-                    col1 = list2_row.column()
-                    col1.label(text="STR")
-                    col1.prop(player_property,"strength", text= "")
-                    col2 = list2_row.column()
-                    col2.label(text="DEX")
-                    col2.prop(player_property,"dexterity", text= "")
-                    col3 = list2_row.column()
-                    col3.label(text="CON")
-                    col3.prop(player_property,"constitution", text= "")
-                    col4 = list2_row.column()
-                    col4.label(text="INT")
-                    col4.prop(player_property,"intelligence", text= "")
-                    col5 = list2_row.column()
-                    col5.label(text="WIS")
-                    col5.prop(player_property,"wisdom", text= "")
-                    col6 = list2_row.column()
-                    col6.label(text="CHA")
-                    col6.prop(player_property,"charisma", text= "")
                     break
+
+class DM_PT_PlayerStatsPanel(bpy.types.Panel):
+    """Creates a Panel for all Player Settings"""
+    bl_label = "Player Stats"
+    bl_idname = "PT_ui_player_stats"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'DM Tools'
+    bl_parent_id = 'PT_ui_player_list'
+
+    def draw(self, context):
+        layout = self.layout
+        dm_property = context.scene.dm_property
+        col = layout.column()
+        row = layout.row()
+
+        i = 0
+        for char in dm_property.characterlist:
+            if bpy.context.object == char.character: 
+                player_property = char.character.player_property
+                list2_col = layout.column()
+                list2_col.prop(player_property,"health_points")
+                list2_col.prop(player_property,"armor_class")
+                list2_col.prop(player_property,"attack_bonus")
+                list2_row = layout.row()
+                col1 = list2_row.column()
+                col1.label(text="STR")
+                col1.prop(player_property,"strength", text= "")
+                col2 = list2_row.column()
+                col2.label(text="DEX")
+                col2.prop(player_property,"dexterity", text= "")
+                col3 = list2_row.column()
+                col3.label(text="CON")
+                col3.prop(player_property,"constitution", text= "")
+                col4 = list2_row.column()
+                col4.label(text="INT")
+                col4.prop(player_property,"intelligence", text= "")
+                col5 = list2_row.column()
+                col5.label(text="WIS")
+                col5.prop(player_property,"wisdom", text= "")
+                col6 = list2_row.column()
+                col6.label(text="CHA")
+                col6.prop(player_property,"charisma", text= "")
+                break
 
 class DM_PT_AddSetupPanel(bpy.types.Panel):
     bl_label = "Map"
@@ -209,7 +231,7 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
                     col = layout.column()
                     col.label(text="Add Map")
                     col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
-                    col.operator("mesh.map_scale", icon="SETTINGS")    
+                    #col.operator("mesh.map_scale", icon="SETTINGS")    
 
 
                     col.label(text="Add Geometry")
@@ -217,7 +239,8 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
                     col.operator("mesh.cave_add") 
                     col.operator("mesh.pillar_add",icon="MESH_CYLINDER") 
                     col.label(text="Add Light")
-                    col.operator("light.torch_add",icon="LIGHT_POINT")
+                    col.operator("light.torch_add",icon="LIGHT_POINT").reveal = False
+                    col.operator("light.torch_add",text = "Reveal map",icon="LIGHT_POINT").reveal = True
 
 class DM_PT_WindowSetupPanel(bpy.types.Panel):
     bl_label = "Window"
@@ -245,14 +268,18 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
         ma = slot.name
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(factor=0.3)
+            split = layout.split(factor=0.1)
 
             if ma:
                 split.prop(slot, "player_color", text ="")
                 split.prop(slot, "name", text="", emboss=False, icon_value=icon)
             else:
                 split.label(text="", translate=False, icon_value=icon)
-            split.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
+
+            row = layout.row(align=True)
+            row.prop(slot, "list_index", text="")
+            row.prop(slot.light_coll, "hide_viewport", text="", icon="HIDE_OFF")
+            row.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -286,7 +313,7 @@ class DM_UL_Floorlist(bpy.types.UIList):
         dm_property = context.scene.dm_property
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(factor=0.3)
+            split = layout.split(factor=0.1)
             if ma:
                 map = dm_property.maplist[dm_property.maplist_data_index]
                 try:
@@ -312,36 +339,36 @@ class PLAYER_List_Button(bpy.types.Operator):
 
     menu_active: bpy.props.IntProperty(name="Button Index")
 
+
+
     def execute(self, context):
         dm_property = context.scene.dm_property
 
-        list = dm_property.characterlist
+        char_list = dm_property.characterlist
         index = dm_property.characterlist_data_index
 
-
-  
         if self.menu_active == 1:
             print("Select")
             pass
 			
         if self.menu_active == 2:
-            anim_entry = list[index]
+            anim_entry = char_list[index]
             #anim_entry = dm_property.characterlist
             anim_entry.width = anim_entry.width + 1
 
         if self.menu_active == 3:
-            list.clear()
+            char_list.clear()
 
 		# Move entry up
         if self.menu_active == 4:
             if index > 0:
-                list.move(index, index-1)
+                char_list.move(index, index-1)
                 index -= 1
 
 		# Move entry down
         if self.menu_active == 5:
-            if index < len(list)-1:
-                list.move(index, index+1)
+            if index < len(char_list)-1:
+                char_list.move(index, index+1)
                 index += 1
         
         # Add entry
@@ -349,23 +376,60 @@ class PLAYER_List_Button(bpy.types.Operator):
             item = index.add()
             if len(bpy.data.actions) > 0:
                 item.action = bpy.data.actions[0]
-            if index < len(list)-1:
-                list.move(len(list)-1, index+1)
+            if index < len(char_list)-1:
+                char_list.move(len(char_list)-1, index+1)
                 index += 1
 
 
 		# Remove Item
         if self.menu_active == 7:
-            if index >= 0 and index < len(list):
-                player = list[index].character
+            if index >= 0 and index < len(char_list):
+                player = char_list[index].character
                 player.player_property.distance_circle.parent = player
                 try:
+                    player.player_property.player_coll.children.unlink(player.player_property.light_coll)
                     bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)
                 except:
                     print("no collection to unlink")
                 delete_hierarchy(player)
-                list.remove(index)
-                index = min(index, len(list)-1)
+                char_list.remove(index)
+                index = min(index, len(char_list)-1)
+
+
+        # Sort
+        if self.menu_active == 8:
+            initiative_list = {}
+            for i in range(len(char_list)):
+                initiative_list[i]  =  char_list[i].character.player_property.list_index
+
+
+            initiative_list = dict(sorted(initiative_list.items(), key=lambda item: item[1],reverse=True))
+            
+            print("sorted : ",initiative_list)
+
+            print(list(initiative_list.keys()).index(i))
+
+            for i in range(len(char_list)):
+                dif = i - list(initiative_list.keys()).index(i) 
+                print("before:" ,i, " : " , dif)
+                k = i
+                
+                if dif > 0:
+                    for j in range(abs(dif)):
+                        char_list.move(k, k-1)
+                        k = k-1
+                        print("move up ", j)
+                if dif < 0:
+                    for j in range(abs(dif)-1):
+                        char_list.move(k, k+1)
+                        k = k+1
+                        print("move down " , j)
+                dif = k - list(initiative_list.keys()).index(i) 
+                print("after:" ,i, " : " , dif)
+                print()
+                print()
+            
+  
         return {"FINISHED"}      
 
 class Map_List_Button(bpy.types.Operator):
@@ -522,6 +586,7 @@ blender_classes = [
     DM_PT_CameraSetupPanel,
     DM_PT_LightSetupPanel,
     DM_PT_PlayerListPanel,
+    DM_PT_PlayerStatsPanel,
     DM_PT_AddSetupPanel,
     DM_PT_WindowSetupPanel,
     DM_UL_Playerlist_player,

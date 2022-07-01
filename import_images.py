@@ -1016,7 +1016,8 @@ class IMPORT_IMAGE_OT_to_plane(Operator, AddObjectHelper):
         width, height = self.compute_plane_size(context, img_spec)
 
         # Create new mesh
-        bpy.ops.mesh.primitive_plane_add('INVOKE_REGION_WIN')
+        bpy.ops.mesh.primitive_plane_add(size=10, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), scale=(1, 1, 1))
+        #bpy.ops.mesh.primitive_plane_add('INVOKE_REGION_WIN')
         plane = context.active_object
         # Why does mesh.primitive_plane_add leave the object in edit mode???
         if plane.mode != 'OBJECT':

@@ -234,12 +234,45 @@ def update_players(self,context, collection):
     dm_property = context.scene.dm_property
 
     dm_property.characterlist.clear()
-
     for player in collection.all_objects:
         if player.player_property.name != "":
                 player_pointer = dm_property.characterlist.add()
-                player_pointer.player = player
+                player_pointer.character = player
                 player_pointer.player_property = player.player_property
+    sort_player_list(self, context)
+
+def sort_player_list(self,context):
+    dm_property = context.scene.dm_property
+    initiative_list = {}
+    for i in range(len(dm_property.characterlist)):
+        initiative_list[i]  =  dm_property.characterlist[i].character.player_property.list_index
+
+
+    initiative_list = dict(sorted(initiative_list.items(), key=lambda item: item[1],reverse=True))
+    
+    print("sorted : ",initiative_list)
+
+    print(list(initiative_list.keys()).index(i))
+
+    for i in range(len(dm_property.characterlist)):
+        dif = i - list(initiative_list.keys()).index(i) 
+        print("before:" ,i, " : " , dif)
+        k = i
+        
+        if dif > 0:
+            for j in range(abs(dif)):
+                dm_property.characterlist.move(k, k-1)
+                k = k-1
+                print("move up ", j)
+        if dif < 0:
+            for j in range(abs(dif)-1):
+                dm_property.characterlist.move(k, k+1)
+                k = k+1
+                print("move down " , j)
+        dif = k - list(initiative_list.keys()).index(i) 
+        print("after:" ,i, " : " , dif)
+        print()
+        print()
 
 
 def update_maps(self,context, collection):
