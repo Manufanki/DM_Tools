@@ -204,6 +204,7 @@ def CreateExtrudeGeoNode(self, context,obj):
         obj.modifiers.new(type='NODES', name="Test").node_group = node_group
     else:
         bpy.ops.object.modifier_add(type='NODES')
+        bpy.ops.node.new_geometry_node_group_assign()
 
         node_group = obj.modifiers[-1].node_group
         node_group.name = "DND_Extruder" 
@@ -349,6 +350,7 @@ def adjustCamera(self, context):
 
 
 def selectMap(self, context):
+    print("SELECT MAP")
     if self.maplist_data_index != -1:
         for item in self.maplist:
             item.map.hide_viewport = True

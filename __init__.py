@@ -263,6 +263,8 @@ class MAP_add(bpy.types.Operator):
         collection_pointer.annotation = gpd
         collection_pointer.map = collection
         collection_pointer.name = collection.name
+
+        dm_prop.maplist_data_index = len(dm_prop.maplist)-1
         
         return {'FINISHED'}
 class MAP_update(bpy.types.Operator):
@@ -522,6 +524,21 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         pillar.select_set(True)
         return{'FINISHED'}
 
+class MESH_Create_GreasePencil(bpy.types.Operator):
+    """Create Cave Roof for Light Shadow"""
+    bl_idname = "mesh.gpencil_add"
+    bl_label = "Add Grease Pencil"
+
+    def execute(self,context):
+        dm_property = context.scene.dm_property
+        bpy.ops.object.gpencil_add(align='WORLD', location=(0,0,1), scale=(1, 1, 1), type='EMPTY')
+        gpencil = context.object
+        gpencil.name = "gpencil"
+        gpencil.data.materials.append(CreateCaveMaterial(self, context))
+        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, gpencil)
+        bpy.context.view_layer.objects.active = gpencil
+        return{'FINISHED'}
+
 class MESH_Create_Cave(bpy.types.Operator):
     """Create Cave Roof for Light Shadow"""
     bl_idname = "mesh.cave_add"
@@ -571,6 +588,65 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
         map.select_set(True)
         return{'FINISHED'}
 
+class AddWhiteMapImage(bpy.types.Operator):
+    """This appears in the tooltip of the operator and in the generated docs"""
+    bl_idname = "add.white_map_image"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Add white Map"
+
+
+    def execute(self, context):
+        bpy.ops.mesh.primitive_plane_add(size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
+        map = context.object
+        map.name = "White_BG"
+        map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
+
+        bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.editmode_toggle()
+        bpy.ops.mesh.delete(type='ONLY_FACE')
+        bpy.ops.object.editmode_toggle()
+        bpy.ops.object.convert(target='GPENCIL')
+        grid = context.object
+        grid.parent = map
+
+
+        dm_property = context.scene.dm_property
+        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            map)
+        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            grid)
+        map.hide_select =True
+        grid.hide_select = True
+        grid.select_set(False)
+        return{'FINISHED'}
+
+class ConvertGPencilToWall(bpy.types.Operator):
+    """This appears in the tooltip of the operator and in the generated docs"""
+    bl_idname = "add.gpencil_to_wall"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Convert GPencil to Wall"
+
+    @classmethod
+    def poll(cls, context):
+        # Checks to see if there's any active mesh object (selected or in edit mode)
+        active_object = context.active_object
+        return active_object is not None and active_object.type == 'GPENCIL'
+
+    def execute(self, context):
+               
+        bpy.ops.gpencil.convert(type='POLY', timing_mode='LINEAR', use_timing_data=False)
+        bpy.context.active_object.select_set(False)
+        for obj in bpy.context.selected_objects:
+            bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.convert(target='MESH')
+        wall = context.object
+        wall.name = "Wall"
+        mesh = wall.data
+
+        CreateExtrudeGeoNode(self,context,wall)
+        dm_property = context.scene.dm_property
+        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            wall)
+                
+        return{'FINISHED'}
 
 def setTransparency(self, context,material, alpha):
     shaderMix_node = material.node_tree.nodes.get('Mix Shader')
@@ -698,6 +774,9 @@ blender_classes = [
     MESH_Create_GeometryNode_Walls,
     MESH_Create_Cave,
     MESH_Create_GeometryNode_Pillars,
+    MESH_Create_GreasePencil,
+    ConvertGPencilToWall,
+    AddWhiteMapImage,
     LIGHT_Create_Torch,
     VIEW3D_PT_grease_pencil,
     VIEW3D_PT_annotation_onion,
