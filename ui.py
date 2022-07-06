@@ -232,6 +232,8 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
                     col.label(text="Add Map")
                     col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
                     col.operator("add.white_map_image", icon="MESH_GRID")
+                    col.operator("add.grid", icon="MESH_GRID")
+
                     col.operator("mesh.gpencil_add", icon = "GREASEPENCIL")
                     col.operator("add.gpencil_to_wall", icon="OUTLINER_OB_GREASEPENCIL")
                     #col.operator("mesh.map_scale", icon="SETTINGS")    

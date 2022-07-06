@@ -410,7 +410,7 @@ class CAMERA_add(bpy.types.Operator):
         dm_property.camera = camera
 
         
-        bpy.ops.mesh.primitive_plane_add(size=80, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_plane_add(size=1000, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
         planeDarkness = bpy.context.object
         planeDarkness.name = "Darkness Plane"
         planeDarkness.parent = camera
@@ -599,23 +599,32 @@ class AddWhiteMapImage(bpy.types.Operator):
         map = context.object
         map.name = "White_BG"
         map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
+        dm_property = context.scene.dm_property
+        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            map)
+        map.hide_select =True
 
+        return{'FINISHED'}
+
+class AddGrid(bpy.types.Operator):
+    """This appears in the tooltip of the operator and in the generated docs"""
+    bl_idname = "add.grid"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Add grid"
+
+
+    def execute(self, context):
         bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         bpy.ops.object.editmode_toggle()
         bpy.ops.mesh.delete(type='ONLY_FACE')
         bpy.ops.object.editmode_toggle()
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         bpy.ops.object.convert(target='GPENCIL')
         grid = context.object
-        grid.parent = map
-
-
         dm_property = context.scene.dm_property
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
-            map)
+
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             grid)
-        map.hide_select =True
-        grid.hide_select = True
+        #grid.hide_select = True
         grid.select_set(False)
         return{'FINISHED'}
 
@@ -777,6 +786,7 @@ blender_classes = [
     MESH_Create_GreasePencil,
     ConvertGPencilToWall,
     AddWhiteMapImage,
+    AddGrid,
     LIGHT_Create_Torch,
     VIEW3D_PT_grease_pencil,
     VIEW3D_PT_annotation_onion,
