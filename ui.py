@@ -81,7 +81,9 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
         layout = self.layout
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
+            
             list_row_layout = layout.row()
+
             list_row_layout.template_list("DM_UL_Playerlist_player", "", dm_property, "characterlist", dm_property, "characterlist_data_index")
             menu_sort_layout_column = list_row_layout.column()
             menu_sort_layout = menu_sort_layout_column.column(align=True)
@@ -274,17 +276,17 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             split = layout.split(factor=0.1)
-
+            row = layout.row(align=True)
             if ma:
                 split.prop(slot, "player_color", text ="")
+                split.prop(slot, "list_index", text="")
                 split.prop(slot, "name", text="", emboss=False, icon_value=icon)
+                row.prop(slot,"health_points",text ="HP")
+                row.prop(slot.light_coll, "hide_viewport", text="", icon="HIDE_OFF")
+                row.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
             else:
                 split.label(text="", translate=False, icon_value=icon)
 
-            row = layout.row(align=True)
-            row.prop(slot, "list_index", text="")
-            row.prop(slot.light_coll, "hide_viewport", text="", icon="HIDE_OFF")
-            row.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
         # 'GRID' layout type should be as compact as possible (typically a single icon!).
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'

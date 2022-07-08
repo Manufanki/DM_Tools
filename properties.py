@@ -172,6 +172,7 @@ class DMProperties(bpy.types.PropertyGroup):
     global_Sun : bpy.props.PointerProperty(type=bpy.types.SunLight)
     
     cave_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
+    bf_wall_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
 
     master_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)

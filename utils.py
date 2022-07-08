@@ -197,6 +197,28 @@ def CreateCaveMaterial(self, context):
         dm_property.cave_Mat = material_cave
     return material_cave
 
+
+def CreateBackfaceWallMaterial(self, context):
+    dm_property = context.scene.dm_property
+    material_bf_wall = dm_property.bf_wall_Mat
+    if material_bf_wall is None:
+        material_bf_wall = bpy.data.materials.new(name="BF WALL MATERIAL")
+        material_bf_wall.use_nodes = True
+
+        
+        principled_node = material_bf_wall.node_tree.nodes.get('Principled BSDF')
+
+        #material_out = material_cave.node_tree.nodes.get('Material Output')
+        #material_out.location = (0,0)
+
+        geometry_node = material_bf_wall.node_tree.nodes.new('ShaderNodeNewGeometry')
+        geometry_node.location = (-200,0)
+        material_bf_wall.node_tree.links.new(geometry_node.outputs[6], principled_node.inputs[21])
+
+        material_bf_wall.shadow_method = 'CLIP'
+        dm_property.bf_wall_Mat = material_bf_wall
+    return material_bf_wall
+
 def CreateExtrudeGeoNode(self, context,obj):
 
     if bpy.data.node_groups.get("DND_Extruder") is not None:

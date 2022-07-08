@@ -62,7 +62,7 @@ class PLAYER_add(bpy.types.Operator):
     bl_label = "Add Player"
     
 
-    tmp_is_enemy : bpy.props.BoolProperty(name ="Disable Field of View", default= False)
+    tmp_is_enemy : bpy.props.BoolProperty(name ="NPC", default= False)
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "player")
 
     def invoke(self, context, event):
@@ -500,6 +500,7 @@ class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
 
         CreateExtrudeGeoNode(self,context,wall)
         dm_property = context.scene.dm_property
+        wall.data.materials.append(CreateBackfaceWallMaterial(self, context))
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             wall)
             
@@ -516,7 +517,7 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         bpy.ops.mesh.primitive_circle_add(radius=1.524, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         pillar = context.object
         pillar.name = "Pillar"
-
+        pillar.data.materials.append(CreateBackfaceWallMaterial(self, context))
         CreateExtrudeGeoNode(self,context,pillar)
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             pillar)
@@ -534,7 +535,6 @@ class MESH_Create_GreasePencil(bpy.types.Operator):
         bpy.ops.object.gpencil_add(align='WORLD', location=(0,0,1), scale=(1, 1, 1), type='EMPTY')
         gpencil = context.object
         gpencil.name = "gpencil"
-        gpencil.data.materials.append(CreateCaveMaterial(self, context))
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, gpencil)
         bpy.context.view_layer.objects.active = gpencil
         return{'FINISHED'}
@@ -649,7 +649,7 @@ class ConvertGPencilToWall(bpy.types.Operator):
         wall = context.object
         wall.name = "Wall"
         mesh = wall.data
-
+        wall.data.materials.append(CreateBackfaceWallMaterial(self, context))
         CreateExtrudeGeoNode(self,context,wall)
         dm_property = context.scene.dm_property
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
