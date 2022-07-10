@@ -18,11 +18,18 @@ from bl_ui.properties_grease_pencil_common import (
 )
 
 from bpy_extras.io_utils import ImportHelper
+import importlib
 
+from . properties import *
 from . utils import *
 from . ui import *
-from . properties import *
 from . import_images import *
+
+#importlib.reload(properties)
+#importlib.reload(utils)
+#importlib.reload(ui)
+#importlib.reload(import_images)
+
 #endregion Methods     
 
 #region Operatior
@@ -613,6 +620,8 @@ class AddGrid(bpy.types.Operator):
 
 
     def execute(self, context):
+
+        dm_property = context.scene.dm_property
         bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
         bpy.ops.object.editmode_toggle()
         bpy.ops.mesh.delete(type='ONLY_FACE')
@@ -620,6 +629,28 @@ class AddGrid(bpy.types.Operator):
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         bpy.ops.object.convert(target='GPENCIL')
         grid = context.object
+        
+        xValDrive = grid.driver_add("location", 0)
+
+        drvVar = xValDrive.driver.variables.new()
+        drvVar.name = 'xvar'
+        drvVar.type = 'TRANSFORMS'
+        drvVar.targets[0].id = dm_property.camera
+        drvVar.targets[0].transform_type = 'LOC_X'
+        xValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % drvVar.name
+
+        yValDrive = grid.driver_add("location", 1)
+
+        yVar = yValDrive.driver.variables.new()
+        yVar.name = 'yvar'
+        yVar.type = 'TRANSFORMS'
+        yVar.targets[0].id = dm_property.camera
+        yVar.targets[0].transform_type = 'LOC_Y'
+        yValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % yVar.name
+
+        grid.data.layers["Grid_Lines"].line_change = -20
+        grid.data.stroke_thickness_space = 'SCREENSPACE'
+
         dm_property = context.scene.dm_property
 
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
@@ -820,5 +851,6 @@ def unregister():
         
     del bpy.types.Scene.dm_property
     del bpy.types.Object.player_property
-    del bpy.types.Object.enemy_property
-    
+    del bpy.types.GreasePencil.map_property
+    del bpy.types.GreasePencilLayers.floor_property
+
