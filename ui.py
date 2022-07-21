@@ -66,6 +66,7 @@ class DM_PT_LightSetupPanel(bpy.types.Panel):
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
             col = layout.column()
+            col.prop(dm_property, 'day_night',text = "Day Night")
             if dm_property.global_Sun != None:
                 col.prop(dm_property.global_Sun, 'diffuse_factor',text = "Sun Light")
 
@@ -279,8 +280,8 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
             row = layout.row(align=True)
             if ma:
                 split.prop(slot, "player_color", text ="")
-                split.prop(slot, "list_index", text="")
                 split.prop(slot, "name", text="", emboss=False, icon_value=icon)
+                row.prop(slot, "list_index", text="Init")
                 row.prop(slot,"health_points",text ="HP")
                 row.prop(slot.light_coll, "hide_viewport", text="", icon="HIDE_OFF")
                 row.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)

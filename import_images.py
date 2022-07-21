@@ -694,9 +694,9 @@ class IMPORT_IMAGE_OT_to_plane(Operator, AddObjectHelper):
     # ------------------------------
     # Properties - Material / Shader
     SHADERS = (
-        ('SHADELESS', "Shadeless", "Only visible to camera and reflections"),
+        ('PRINCIPLED',"Principled","Principled Shader"),
     )
-    shader: EnumProperty(name="Shader", items=SHADERS, default='SHADELESS', description="Node shader to use")
+    shader: EnumProperty(name="Shader", items=SHADERS, default='PRINCIPLED', description="Node shader to use")
 
     emit_strength: FloatProperty(
         name="Strength", min=0.0, default=1.0, soft_max=10.0,

@@ -9,6 +9,7 @@ bl_info = {
     "category" : "",
 }
 
+from unittest import skip
 import bpy
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
@@ -20,6 +21,7 @@ from bl_ui.properties_grease_pencil_common import (
 from bpy_extras.io_utils import ImportHelper
 import importlib
 
+from . touchtracer import *
 from . properties import *
 from . utils import *
 from . ui import *
@@ -49,6 +51,7 @@ class PLAYER_Distance_Button(bpy.types.Operator):
         loc = context.object.location
         context.object.player_property.distance_circle.location = (loc.x, loc.y, 3)
         return {"FINISHED"} 
+
 
 class PLAYER_Torch_Button(bpy.types.Operator):
     bl_idname = "player.torch"
@@ -127,7 +130,7 @@ class PLAYER_add(bpy.types.Operator):
         spot.data.shadow_soft_size = 100
         spot.data.energy = 500000
         spot.data.spot_blend = 1
-        spot.data.color = (1, 0, 0)
+        spot.data.color = (1, 1, 1)
         component_list.append(spot)
         light_list.append(spot)
 
@@ -137,7 +140,7 @@ class PLAYER_add(bpy.types.Operator):
         point.parent = player
         point.data.shadow_soft_size = 2.5
         point.data.energy = 500
-        point.data.color = (1, 0, 0)
+        point.data.color = (1, 1, 1)
         component_list.append(point)
         light_list.append(point)
 
@@ -149,7 +152,7 @@ class PLAYER_add(bpy.types.Operator):
         spotDark.data.spot_size = 1.74
         spotDark.data.shadow_soft_size = 100
         spotDark.data.energy = 500000
-        spotDark.data.color = (0, 0, 1)
+        spotDark.data.color = (1, 1, 1)
         spotDark.data.spot_blend = 1
         spotDark.data.use_shadow = False
         spotDark.data.use_custom_distance = True
@@ -161,9 +164,9 @@ class PLAYER_add(bpy.types.Operator):
         pointDark = bpy.context.object
         pointDark.name = "Player Vision Dark Point"
         pointDark.parent = player
-        pointDark.data.shadow_soft_size = 2.5
-        pointDark.data.energy = 2000
-        pointDark.data.color = (0, 0, 1)
+        pointDark.data.shadow_soft_size = 2
+        pointDark.data.energy = 150
+        pointDark.data.color = (1, 1, 1)
         pointDark.data.use_custom_distance = True
         pointDark.data.cutoff_distance = 0
         component_list.append(pointDark)
@@ -176,7 +179,7 @@ class PLAYER_add(bpy.types.Operator):
         torch.parent = player
         torch.data.energy = 40000
         torch.data.shadow_soft_size = 9.144
-        torch.data.color = (0, 0, 1)
+        torch.data.color = (1, 1, 1)
         torch.data.use_shadow = True
         torch.data.use_custom_distance = True
         torch.data.cutoff_distance = 18.288
@@ -212,8 +215,14 @@ class PLAYER_add(bpy.types.Operator):
             spot.hide_select = True
             spotDark.hide_select = True
             pointDark.hide_select = True
-            player_property.spot_dark = spotDark.data
-            player_property.point_dark = pointDark.data
+            point.hide_viewport = dm_prop.day_night
+            spot.hide_viewport = dm_prop.day_night
+            spotDark.hide_viewport = not dm_prop.day_night
+            pointDark.hide_viewport = not dm_prop.day_night
+            player_property.spot_day = spot
+            player_property.point_day = point
+            player_property.spot_night = spotDark
+            player_property.point_night = pointDark
         distance_circel.hide_select = True
         distance_circel.hide_set(True)
         bpy.context.view_layer.objects.active = player
@@ -291,9 +300,9 @@ class MAP_update(bpy.types.Operator):
         return {'FINISHED'}
 
 class FLOOR_add(bpy.types.Operator):
-    "Add Map Collection to the Scene"
+    "Add a Floor to the current Map"
     bl_idname = "floor.add"
-    bl_label = "Add Map"
+    bl_label = "Add Floor"
     
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "floor")
 
@@ -406,37 +415,39 @@ class CAMERA_add(bpy.types.Operator):
     
     def execute(self, context):
         dm_property = context.scene.dm_property
-        bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, 0, 10), rotation=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, 0, 100), rotation=(0, 0, 0), scale=(1, 1, 1))
         camera = bpy.context.object
         camera.name = "DnD Camera"
-        camera.data.type = 'ORTHO'
-        camera.data.ortho_scale = 35.0
+        camera.data.clip_end = 1000
+
+        camera.data.type = 'PERSP'
+        camera.data.lens = 50.0
         camera.lock_location = (False, False, True)
         camera.lock_rotation = (True, True, True)
         camera.data.passepartout_alpha = 1
         dm_property.camera = camera
 
         
-        bpy.ops.mesh.primitive_plane_add(size=1000, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
-        planeDarkness = bpy.context.object
-        planeDarkness.name = "Darkness Plane"
-        planeDarkness.parent = camera
+        # bpy.ops.mesh.primitive_plane_add(size=1000, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
+        # planeDarkness = bpy.context.object
+        # planeDarkness.name = "Darkness Plane"
+        # planeDarkness.parent = camera
         
-        planeDarkness.data.materials.append(CreateDarknessMaterial(self,context))
-        planeDarkness.hide_select = True
+        # planeDarkness.data.materials.append(CreateDarknessMaterial(self,context))
+        # planeDarkness.hide_select = True
         
-        bpy.ops.object.light_add(type='SUN', align='WORLD', location=(0, 0, 10), scale=(1, 1, 1))
-        sun = bpy.context.object
-        sun.name = "DND SUN"
-        sun.data.energy = 10
-        sun.data.color = (0, 0, 1)
-        sun.hide_select = True
-        sun.parent = camera
+        # bpy.ops.object.light_add(type='SUN', align='WORLD', location=(0, 0, 10), scale=(1, 1, 1))
+        # sun = bpy.context.object
+        # sun.name = "DND SUN"
+        # sun.data.energy = 10
+        # sun.data.color = (0, 0, 1)
+        # sun.hide_select = True
+        # sun.parent = camera
 
-        context.scene.dm_property.global_Sun = sun.data
+        #context.scene.dm_property.global_Sun = sun.data
         addToCollection(self, context, "Camera",camera)
-        addToCollection(self, context, "Camera",planeDarkness)
-        addToCollection(self, context, "Camera",sun)
+        #addToCollection(self, context, "Camera",planeDarkness)
+        #addToCollection(self, context, "Camera",sun)
         return {'FINISHED'}
 
 class CAMERA_remove(bpy.types.Operator):
@@ -461,7 +472,7 @@ class CAMERA_zoom(bpy.types.Operator):
         dm_property = context.scene.dm_property
         camera = dm_property.camera
         dm_property.camera_zoom_toggle = not dm_property.camera_zoom_toggle
-        camera.data.ortho_scale = self.scale
+        camera.data.lens = self.scale
 
         return {'FINISHED'}
 
@@ -505,9 +516,17 @@ class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
         bpy.ops.mesh.delete(type='VERT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-        CreateExtrudeGeoNode(self,context,wall)
+
         dm_property = context.scene.dm_property
         wall.data.materials.append(CreateBackfaceWallMaterial(self, context))
+        wall.data.materials.append(CreateTransparentMaterial(self, context))
+
+        CreateExtrudeGeoNode(self,context,wall)
+        bpy.ops.object.modifier_add(type='SOLIDIFY')
+        bpy.context.object.modifiers["Solidify"].use_rim_only = True
+        bpy.context.object.modifiers["Solidify"].thickness = 0.3
+        bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
+
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             wall)
             
@@ -525,7 +544,16 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         pillar = context.object
         pillar.name = "Pillar"
         pillar.data.materials.append(CreateBackfaceWallMaterial(self, context))
+        pillar.data.materials.append(CreateTransparentMaterial(self, context))
+
         CreateExtrudeGeoNode(self,context,pillar)
+
+        bpy.ops.object.modifier_add(type='SOLIDIFY')
+        bpy.context.object.modifiers["Solidify"].use_rim_only = True
+        bpy.context.object.modifiers["Solidify"].thickness = 0.3
+        bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
+
+
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             pillar)
         bpy.context.view_layer.objects.active = pillar
@@ -826,6 +854,7 @@ blender_classes = [
 
 # Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
 def register():
+    #TouchtracerApp().run()
     import_images.register()
     properties.register()
     ui.register()

@@ -39,8 +39,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
         unit_dist = self.darkvision
         distance = unit_to_bu(unit_dist,unitinfo[1])
         distance += 1.5
-        self.spot_dark.cutoff_distance = distance
-        self.point_dark.cutoff_distance = distance
+        self.spot_night.data.cutoff_distance = distance
+        self.point_night.data.cutoff_distance = distance
 
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     light_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
@@ -63,8 +63,10 @@ class PlayerProperties(bpy.types.PropertyGroup):
         max = 100,
         update=update_darkvision
     )
-    spot_dark : bpy.props.PointerProperty(type=bpy.types.SpotLight)
-    point_dark : bpy.props.PointerProperty(type=bpy.types.PointLight)
+    spot_day : bpy.props.PointerProperty(type=bpy.types.Object)
+    point_day : bpy.props.PointerProperty(type=bpy.types.Object)
+    spot_night : bpy.props.PointerProperty(type=bpy.types.Object)
+    point_night : bpy.props.PointerProperty(type=bpy.types.Object)
     player_material : bpy.props.PointerProperty(type=bpy.types.Material)
     #name : bpy.props.StringProperty()
     player_color: bpy.props.FloatVectorProperty(
@@ -171,6 +173,10 @@ class DMProperties(bpy.types.PropertyGroup):
     camera_pan_toggle : bpy.props.BoolProperty()
     global_Sun : bpy.props.PointerProperty(type=bpy.types.SunLight)
     
+    day_night :bpy.props.BoolProperty(
+        update=toggleDayNight
+    )
+
     cave_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
     bf_wall_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
 

@@ -198,22 +198,41 @@ def CreateCaveMaterial(self, context):
     return material_cave
 
 
+def CreateTransparentMaterial(self, context):
+    dm_property = context.scene.dm_property
+    material_trans = dm_property.cave_Mat
+    if material_trans is None:
+        material_trans = CreateCaveMaterial(self, context)
+    material_trans.shadow_method = 'NONE'
+    return material_trans
+
 def CreateBackfaceWallMaterial(self, context):
     dm_property = context.scene.dm_property
     material_bf_wall = dm_property.bf_wall_Mat
     if material_bf_wall is None:
-        material_bf_wall = bpy.data.materials.new(name="BF WALL MATERIAL")
+        material_bf_wall = bpy.data.materials.new(name="BACKFACE WALL MATERIAL")
         material_bf_wall.use_nodes = True
-
+        shaderMix_node = material_bf_wall.node_tree.nodes.new('ShaderNodeMixShader')
+        shaderMix_node.location = (100,0)
+        material_bf_wall.node_tree.nodes.remove(material_bf_wall.node_tree.nodes.get('Principled BSDF'))
         
-        principled_node = material_bf_wall.node_tree.nodes.get('Principled BSDF')
+        material_out = material_bf_wall.node_tree.nodes.get('Material Output')
+        material_out.location = (0,0)
 
-        #material_out = material_cave.node_tree.nodes.get('Material Output')
-        #material_out.location = (0,0)
+        transparent_node = material_bf_wall.node_tree.nodes.new('ShaderNodeBsdfTransparent')
+        transparent_node.location = (-100,-400)
+
+        emit_node = material_bf_wall.node_tree.nodes.new('ShaderNodeEmission')
+        emit_node.location = (-200,0)
 
         geometry_node = material_bf_wall.node_tree.nodes.new('ShaderNodeNewGeometry')
         geometry_node.location = (-200,0)
-        material_bf_wall.node_tree.links.new(geometry_node.outputs[6], principled_node.inputs[21])
+
+        emit_node.inputs[0].default_value = (0,0,0,1)
+        material_bf_wall.node_tree.links.new(geometry_node.outputs[6],  shaderMix_node.inputs[0])
+        material_bf_wall.node_tree.links.new(emit_node.outputs[0], shaderMix_node.inputs[1])
+        material_bf_wall.node_tree.links.new(transparent_node.outputs[0], shaderMix_node.inputs[2])
+        material_bf_wall.node_tree.links.new(shaderMix_node.outputs[0], material_out.inputs[0])
 
         material_bf_wall.shadow_method = 'CLIP'
         dm_property.bf_wall_Mat = material_bf_wall
@@ -364,11 +383,23 @@ def selectCharacter(self, context):
         self.characterlist[self.characterlist_data_index].character.select_set(True)
         bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].character
 
+
+def toggleDayNight(self, context):
+    for char in self.characterlist:
+        player = char.character.player_property
+        if player.is_enemy:
+            continue
+        player.spot_day.hide_viewport = self.day_night
+        player.point_day.hide_viewport = self.day_night
+        player.spot_night.hide_viewport = not self.day_night
+        player.point_night.hide_viewport = not self.day_night
+
+
 def adjustCamera(self, context):
     if self.camera_zoom_toggle:
-        self.camera.data.ortho_scale = self.camera_zoom_in
+        self.camera.data.lens = self.camera_zoom_in
     else:
-        self.camera.data.ortho_scale = self.camera_zoom_out
+        self.camera.data.lens = self.camera_zoom_out
 
 
 def selectMap(self, context):
