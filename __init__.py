@@ -9,7 +9,6 @@ bl_info = {
     "category" : "",
 }
 
-from unittest import skip
 import bpy
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
@@ -19,9 +18,13 @@ from bl_ui.properties_grease_pencil_common import (
 )
 
 from bpy_extras.io_utils import ImportHelper
+import os
+import sys
+import subprocess
 import importlib
+from collections import namedtuple
 
-from . touchtracer import *
+from . touchtracer import register
 from . properties import *
 from . utils import *
 from . ui import *
@@ -51,7 +54,6 @@ class PLAYER_Distance_Button(bpy.types.Operator):
         loc = context.object.location
         context.object.player_property.distance_circle.location = (loc.x, loc.y, 3)
         return {"FINISHED"} 
-
 
 class PLAYER_Torch_Button(bpy.types.Operator):
     bl_idname = "player.torch"
@@ -130,7 +132,7 @@ class PLAYER_add(bpy.types.Operator):
         spot.data.shadow_soft_size = 100
         spot.data.energy = 500000
         spot.data.spot_blend = 1
-        spot.data.color = (1, 1, 1)
+        spot.data.color = (1, 0, 0)
         component_list.append(spot)
         light_list.append(spot)
 
@@ -140,7 +142,7 @@ class PLAYER_add(bpy.types.Operator):
         point.parent = player
         point.data.shadow_soft_size = 2.5
         point.data.energy = 500
-        point.data.color = (1, 1, 1)
+        point.data.color = (1, 0, 0)
         component_list.append(point)
         light_list.append(point)
 
@@ -152,7 +154,7 @@ class PLAYER_add(bpy.types.Operator):
         spotDark.data.spot_size = 1.74
         spotDark.data.shadow_soft_size = 100
         spotDark.data.energy = 500000
-        spotDark.data.color = (1, 1, 1)
+        spotDark.data.color = (0, 0, 1)
         spotDark.data.spot_blend = 1
         spotDark.data.use_shadow = False
         spotDark.data.use_custom_distance = True
@@ -164,9 +166,9 @@ class PLAYER_add(bpy.types.Operator):
         pointDark = bpy.context.object
         pointDark.name = "Player Vision Dark Point"
         pointDark.parent = player
-        pointDark.data.shadow_soft_size = 2
-        pointDark.data.energy = 150
-        pointDark.data.color = (1, 1, 1)
+        pointDark.data.shadow_soft_size = 2.5
+        pointDark.data.energy = 2000
+        pointDark.data.color = (0, 0, 1)
         pointDark.data.use_custom_distance = True
         pointDark.data.cutoff_distance = 0
         component_list.append(pointDark)
@@ -179,7 +181,7 @@ class PLAYER_add(bpy.types.Operator):
         torch.parent = player
         torch.data.energy = 40000
         torch.data.shadow_soft_size = 9.144
-        torch.data.color = (1, 1, 1)
+        torch.data.color = (0, 0, 1)
         torch.data.use_shadow = True
         torch.data.use_custom_distance = True
         torch.data.cutoff_distance = 18.288
@@ -215,14 +217,8 @@ class PLAYER_add(bpy.types.Operator):
             spot.hide_select = True
             spotDark.hide_select = True
             pointDark.hide_select = True
-            point.hide_viewport = dm_prop.day_night
-            spot.hide_viewport = dm_prop.day_night
-            spotDark.hide_viewport = not dm_prop.day_night
-            pointDark.hide_viewport = not dm_prop.day_night
-            player_property.spot_day = spot
-            player_property.point_day = point
-            player_property.spot_night = spotDark
-            player_property.point_night = pointDark
+            player_property.spot_dark = spotDark.data
+            player_property.point_dark = pointDark.data
         distance_circel.hide_select = True
         distance_circel.hide_set(True)
         bpy.context.view_layer.objects.active = player
@@ -243,6 +239,24 @@ class PLAYER_update(bpy.types.Operator):
             update_players(self,context,collection)
 
         bpy.ops.list.list_op(menu_active = 8)
+        return {'FINISHED'}
+
+
+class PLAYER_move(bpy.types.Operator):
+    "Add Map Collection to the Scene"
+    bl_idname = "player.move"
+    bl_label = "move players"
+    
+
+    x_pos: bpy.props.FloatProperty(name="xpos")
+    y_pos: bpy.props.FloatProperty(name="ypos")
+    def execute(self, context):
+        dm_property = context.scene.dm_property
+        
+        for char in dm_property.characterlist:
+            print(char.character.name)
+            char.character.location.x = 10#self.x_pos
+            char.character.location.y = 10#self.y_pos
         return {'FINISHED'}
 
 class MAP_add(bpy.types.Operator):
@@ -300,9 +314,9 @@ class MAP_update(bpy.types.Operator):
         return {'FINISHED'}
 
 class FLOOR_add(bpy.types.Operator):
-    "Add a Floor to the current Map"
+    "Add Map Collection to the Scene"
     bl_idname = "floor.add"
-    bl_label = "Add Floor"
+    bl_label = "Add Map"
     
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "floor")
 
@@ -415,39 +429,37 @@ class CAMERA_add(bpy.types.Operator):
     
     def execute(self, context):
         dm_property = context.scene.dm_property
-        bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, 0, 100), rotation=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.camera_add(enter_editmode=False, align='WORLD', location=(0, 0, 10), rotation=(0, 0, 0), scale=(1, 1, 1))
         camera = bpy.context.object
         camera.name = "DnD Camera"
-        camera.data.clip_end = 1000
-
-        camera.data.type = 'PERSP'
-        camera.data.lens = 50.0
+        camera.data.type = 'ORTHO'
+        camera.data.ortho_scale = 35.0
         camera.lock_location = (False, False, True)
         camera.lock_rotation = (True, True, True)
         camera.data.passepartout_alpha = 1
         dm_property.camera = camera
 
         
-        # bpy.ops.mesh.primitive_plane_add(size=1000, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
-        # planeDarkness = bpy.context.object
-        # planeDarkness.name = "Darkness Plane"
-        # planeDarkness.parent = camera
+        bpy.ops.mesh.primitive_plane_add(size=1000, enter_editmode=False, align='WORLD', location=(0, 0, -9.5), scale=(1, 1, 1))
+        planeDarkness = bpy.context.object
+        planeDarkness.name = "Darkness Plane"
+        planeDarkness.parent = camera
         
-        # planeDarkness.data.materials.append(CreateDarknessMaterial(self,context))
-        # planeDarkness.hide_select = True
+        planeDarkness.data.materials.append(CreateDarknessMaterial(self,context))
+        planeDarkness.hide_select = True
         
-        # bpy.ops.object.light_add(type='SUN', align='WORLD', location=(0, 0, 10), scale=(1, 1, 1))
-        # sun = bpy.context.object
-        # sun.name = "DND SUN"
-        # sun.data.energy = 10
-        # sun.data.color = (0, 0, 1)
-        # sun.hide_select = True
-        # sun.parent = camera
+        bpy.ops.object.light_add(type='SUN', align='WORLD', location=(0, 0, 10), scale=(1, 1, 1))
+        sun = bpy.context.object
+        sun.name = "DND SUN"
+        sun.data.energy = 10
+        sun.data.color = (0, 0, 1)
+        sun.hide_select = True
+        sun.parent = camera
 
-        #context.scene.dm_property.global_Sun = sun.data
+        context.scene.dm_property.global_Sun = sun.data
         addToCollection(self, context, "Camera",camera)
-        #addToCollection(self, context, "Camera",planeDarkness)
-        #addToCollection(self, context, "Camera",sun)
+        addToCollection(self, context, "Camera",planeDarkness)
+        addToCollection(self, context, "Camera",sun)
         return {'FINISHED'}
 
 class CAMERA_remove(bpy.types.Operator):
@@ -472,7 +484,7 @@ class CAMERA_zoom(bpy.types.Operator):
         dm_property = context.scene.dm_property
         camera = dm_property.camera
         dm_property.camera_zoom_toggle = not dm_property.camera_zoom_toggle
-        camera.data.lens = self.scale
+        camera.data.ortho_scale = self.scale
 
         return {'FINISHED'}
 
@@ -516,17 +528,9 @@ class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
         bpy.ops.mesh.delete(type='VERT')
         bpy.ops.object.mode_set(mode='OBJECT')
 
-
+        CreateExtrudeGeoNode(self,context,wall)
         dm_property = context.scene.dm_property
         wall.data.materials.append(CreateBackfaceWallMaterial(self, context))
-        wall.data.materials.append(CreateTransparentMaterial(self, context))
-
-        CreateExtrudeGeoNode(self,context,wall)
-        bpy.ops.object.modifier_add(type='SOLIDIFY')
-        bpy.context.object.modifiers["Solidify"].use_rim_only = True
-        bpy.context.object.modifiers["Solidify"].thickness = 0.3
-        bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
-
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             wall)
             
@@ -544,16 +548,7 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         pillar = context.object
         pillar.name = "Pillar"
         pillar.data.materials.append(CreateBackfaceWallMaterial(self, context))
-        pillar.data.materials.append(CreateTransparentMaterial(self, context))
-
         CreateExtrudeGeoNode(self,context,pillar)
-
-        bpy.ops.object.modifier_add(type='SOLIDIFY')
-        bpy.context.object.modifiers["Solidify"].use_rim_only = True
-        bpy.context.object.modifiers["Solidify"].thickness = 0.3
-        bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
-
-
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             pillar)
         bpy.context.view_layer.objects.active = pillar
@@ -820,6 +815,202 @@ class TOPBAR_PT_annotation_layers(bpy.types.Panel, AnnotationDataPanel):
 
 
 
+Dependency = namedtuple("Dependency", ["module", "package", "name"])
+
+# Declare all modules that this add-on depends on, that may need to be installed. The package and (global) name can be
+# set to None, if they are equal to the module name. See import_module and ensure_and_import_module for the explanation
+# of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
+# "import" statement.
+dependencies = (Dependency(module="kivy", package=None, name=None),
+)
+
+dependencies_installed = False
+
+
+def import_module(module_name, global_name=None, reload=True):
+    """
+    Import a module.
+    :param module_name: Module to import.
+    :param global_name: (Optional) Name under which the module is imported. If None the module_name will be used.
+       This allows to import under a different name with the same effect as e.g. "import numpy as np" where "np" is
+       the global_name under which the module can be accessed.
+    :raises: ImportError and ModuleNotFoundError
+    """
+    if global_name is None:
+        global_name = module_name
+
+    if global_name in globals():
+        importlib.reload(globals()[global_name])
+    else:
+        # Attempt to import the module and assign it to globals dictionary. This allow to access the module under
+        # the given name, just like the regular import would.
+        globals()[global_name] = importlib.import_module(module_name)
+
+
+def install_pip():
+    """
+    Installs pip if not already present. Please note that ensurepip.bootstrap() also calls pip, which adds the
+    environment variable PIP_REQ_TRACKER. After ensurepip.bootstrap() finishes execution, the directory doesn't exist
+    anymore. However, when subprocess is used to call pip, in order to install a package, the environment variables
+    still contain PIP_REQ_TRACKER with the now nonexistent path. This is a problem since pip checks if PIP_REQ_TRACKER
+    is set and if it is, attempts to use it as temp directory. This would result in an error because the
+    directory can't be found. Therefore, PIP_REQ_TRACKER needs to be removed from environment variables.
+    :return:
+    """
+
+    try:
+        # Check if pip is already installed
+        subprocess.run([sys.executable, "-m", "pip", "--version"], check=True)
+    except subprocess.CalledProcessError:
+        import ensurepip
+
+        ensurepip.bootstrap()
+        os.environ.pop("PIP_REQ_TRACKER", None)
+
+
+def install_and_import_module(module_name, package_name=None, global_name=None):
+    """
+    Installs the package through pip and attempts to import the installed module.
+    :param module_name: Module to import.
+    :param package_name: (Optional) Name of the package that needs to be installed. If None it is assumed to be equal
+       to the module_name.
+    :param global_name: (Optional) Name under which the module is imported. If None the module_name will be used.
+       This allows to import under a different name with the same effect as e.g. "import numpy as np" where "np" is
+       the global_name under which the module can be accessed.
+    :raises: subprocess.CalledProcessError and ImportError
+    """
+    if package_name is None:
+        package_name = module_name
+
+    if global_name is None:
+        global_name = module_name
+
+    # Blender disables the loading of user site-packages by default. However, pip will still check them to determine
+    # if a dependency is already installed. This can cause problems if the packages is installed in the user
+    # site-packages and pip deems the requirement satisfied, but Blender cannot import the package from the user
+    # site-packages. Hence, the environment variable PYTHONNOUSERSITE is set to disallow pip from checking the user
+    # site-packages. If the package is not already installed for Blender's Python interpreter, it will then try to.
+    # The paths used by pip can be checked with `subprocess.run([bpy.app.binary_path_python, "-m", "site"], check=True)`
+
+    # Create a copy of the environment variables and modify them for the subprocess call
+    environ_copy = dict(os.environ)
+    environ_copy["PYTHONNOUSERSITE"] = "1"
+
+    subprocess.run([sys.executable, "-m", "pip", "install", package_name], check=True, env=environ_copy)
+
+    # The installation succeeded, attempt to import the module again
+    import_module(module_name, global_name)
+
+
+class EXAMPLE_OT_dummy_operator(bpy.types.Operator):
+    bl_idname = "example.dummy_operator"
+    bl_label = "Dummy Operator"
+    bl_description = "This operator tries to use kivy."
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        
+        bpy.ops.touch.move('INVOKE_DEFAULT')
+        return {"FINISHED"}
+
+
+class EXAMPLE_PT_panel(bpy.types.Panel):
+    bl_label = "Example Panel"
+    bl_category = "Example Tab"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    def draw(self, context):
+        layout = self.layout
+
+        for dependency in dependencies:
+            if dependency.name is None and hasattr(globals()[dependency.module], "__version__"):
+                layout.label(text=f"{dependency.module} {globals()[dependency.module].__version__}")
+            elif hasattr(globals()[dependency.name], "__version__"):
+                layout.label(text=f"{dependency.module} {globals()[dependency.name].__version__}")
+            else:
+                layout.label(text=f"{dependency.module}")
+
+        layout.operator(EXAMPLE_OT_dummy_operator.bl_idname)
+
+
+class EXAMPLE_PT_warning_panel(bpy.types.Panel):
+    bl_label = "Example Warning"
+    bl_category = "Example Tab"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+
+    @classmethod
+    def poll(self, context):
+        return not dependencies_installed
+
+    def draw(self, context):
+        layout = self.layout
+
+        lines = [f"Please install the missing dependencies for the \"{bl_info.get('name')}\" add-on.",
+                 f"1. Open the preferences (Edit > Preferences > Add-ons).",
+                 f"2. Search for the \"{bl_info.get('name')}\" add-on.",
+                 f"3. Open the details section of the add-on.",
+                 f"4. Click on the \"{EXAMPLE_OT_install_dependencies.bl_label}\" button.",
+                 f"   This will download and install the missing Python packages, if Blender has the required",
+                 f"   permissions.",
+                 f"If you're attempting to run the add-on from the text editor, you won't see the options described",
+                 f"above. Please install the add-on properly through the preferences.",
+                 f"1. Open the add-on preferences (Edit > Preferences > Add-ons).",
+                 f"2. Press the \"Install\" button.",
+                 f"3. Search for the add-on file.",
+                 f"4. Confirm the selection by pressing the \"Install Add-on\" button in the file browser."]
+
+        for line in lines:
+            layout.label(text=line)
+
+
+class EXAMPLE_OT_install_dependencies(bpy.types.Operator):
+    bl_idname = "example.install_dependencies"
+    bl_label = "Install dependencies"
+    bl_description = ("Downloads and installs the required python packages for this add-on. "
+                      "Internet connection is required. Blender may have to be started with "
+                      "elevated permissions in order to install the package")
+    bl_options = {"REGISTER", "INTERNAL"}
+
+    @classmethod
+    def poll(self, context):
+        # Deactivate when dependencies have been installed
+        return not dependencies_installed
+
+    def execute(self, context):
+        try:
+            install_pip()
+            for dependency in dependencies:
+                install_and_import_module(module_name=dependency.module,
+                                          package_name=dependency.package,
+                                          global_name=dependency.name)
+        except (subprocess.CalledProcessError, ImportError) as err:
+            self.report({"ERROR"}, str(err))
+            return {"CANCELLED"}
+
+        global dependencies_installed
+        dependencies_installed = True
+
+        # Register the panels, operators, etc. since dependencies are installed
+        for cls in classes:
+            bpy.utils.register_class(cls)
+
+        return {"FINISHED"}
+
+
+class EXAMPLE_preferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(EXAMPLE_OT_install_dependencies.bl_idname, icon="CONSOLE")
+
+
+preference_classes = (EXAMPLE_PT_warning_panel,
+                      EXAMPLE_OT_install_dependencies,
+                      EXAMPLE_preferences)
+
 
 
 blender_classes = [
@@ -829,6 +1020,7 @@ blender_classes = [
     PLAYER_Torch_Button,
     PLAYER_add,
     PLAYER_update,
+    PLAYER_move,
     MAP_add,
     MAP_update,
     FLOOR_add,
@@ -849,12 +1041,28 @@ blender_classes = [
     LIGHT_Create_Torch,
     VIEW3D_PT_grease_pencil,
     VIEW3D_PT_annotation_onion,
-    TOPBAR_PT_annotation_layers
+    TOPBAR_PT_annotation_layers,
+    EXAMPLE_OT_dummy_operator,
+    EXAMPLE_PT_panel
 ]
 
 # Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
 def register():
-    #TouchtracerApp().run()
+    global dependencies_installed
+    dependencies_installed = False
+
+    for cls in preference_classes:
+        bpy.utils.register_class(cls)
+
+    try:
+        for dependency in dependencies:
+            import_module(module_name=dependency.module, global_name=dependency.name)
+        dependencies_installed = True
+    except ModuleNotFoundError:
+        # Don't register other panels, operators etc.
+        return
+
+    touchtracer.register()
     import_images.register()
     properties.register()
     ui.register()
@@ -872,6 +1080,10 @@ def register():
     #bpy.context.scene.dm_property.master_coll = bpy.context.scene.collection
 
 def unregister():
+    for cls in preference_classes:
+        bpy.utils.unregister_class(cls)
+
+    touchtracer.unregister()    
     properties.unregister()
     ui.unregister()
     import_images.unregister()
