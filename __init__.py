@@ -778,11 +778,13 @@ class Window_new(bpy.types.Operator):
     bl_label = "New Window"
     def execute(self, context):
         bpy.ops.wm.window_new()
+        context.scene.touch_property.screen = bpy.context.screen
+        #context.scene.touch_manager.rv3d = bpy.context.region_data
         bpy.context.area.ui_type = 'VIEW_3D'
         bpy.context.space_data.shading.type = 'RENDERED'
         bpy.context.space_data.overlay.show_overlays = False
         bpy.context.space_data.show_gizmo = False
-        bpy.ops.screen.screen_full_area(use_hide_panels=True)
+        #bpy.ops.screen.screen_full_area(use_hide_panels=True)
         #Camera view
         area = next(area for area in bpy.context.screen.areas if area.type == 'VIEW_3D')
         area.spaces[0].region_3d.view_perspective = 'CAMERA'
@@ -1070,8 +1072,8 @@ def register():
         bpy.utils.register_class(blender_class)
 
     
-
     bpy.types.Scene.dm_property = bpy.props.PointerProperty(type = DMProperties)    
+    bpy.types.Scene.touch_property = bpy.props.PointerProperty(type = TouchProperties)    
     bpy.types.Object.player_property = bpy.props.PointerProperty(type = PlayerProperties)
     bpy.types.GreasePencil.map_property = bpy.props.PointerProperty(type = MapPointerProperties)
     bpy.types.GreasePencilLayers.floor_property = bpy.props.PointerProperty(type = FloorPointerProperties)
@@ -1091,6 +1093,7 @@ def unregister():
         bpy.utils.unregister_class(blender_class)    
         
     del bpy.types.Scene.dm_property
+    del bpy.types.Scene.touch_property
     del bpy.types.Object.player_property
     del bpy.types.GreasePencil.map_property
     del bpy.types.GreasePencilLayers.floor_property

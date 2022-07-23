@@ -38,6 +38,8 @@ from kivy.graphics import Color, Rectangle, Point, GraphicException
 from kivy.metrics import dp
 from kivy.lang import Builder
 
+from mathutils import Vector
+
 import win32gui
 import win32con
 import win32api
@@ -119,8 +121,9 @@ class Touchtracer(FloatLayout):
         ud = touch.ud
         ud['group'] = g = str(touch.uid)
         pointsize = 5
-        print(touch.profile)
-        #bpy.ops.player.move()
+        #print(touch.profile)
+        #bpy.context.scene.touch_property.touch0 = (int(touch.x),int(touch.y),0)
+        #bpy.ops.view3d.raycast(touch_pos = Vector((touch.x, touch.y)))
 
         if 'pressure' in touch.profile:
             ud['pressure'] = touch.pressure
@@ -148,8 +151,8 @@ class Touchtracer(FloatLayout):
         ud['lines'][0].pos = touch.x, 0
         ud['lines'][1].pos = 0, touch.y
 
-        print(touch.x, touch.y)
-        
+        #print(touch.x, touch.y)
+        bpy.context.scene.touch_property.touch0 = (int(touch.x),int(touch.y),0)
       
 
         index = -1
@@ -258,10 +261,20 @@ class TOUCH_OT_move(bpy.types.Operator):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
-def register(): 
-    bpy.utils.register_class(TOUCH_OT_move)
-    bpy.app.timers.register(execute_queued_functions)
 
-def unregister(): 
-    bpy.utils.unregister_class(TOUCH_OT_move)
+#classes = (TOUCH_OT_move)
+
+
+def register():
+    bpy.app.timers.register(execute_queued_functions)
+    bpy.utils.register_class(TOUCH_OT_move)
+    # for c in classes:
+    #     bpy.utils.register_class(c)
+
+
+def unregister():
     bpy.app.timers.unregister(execute_queued_functions)
+    bpy.utils.unregister_class(TOUCH_OT_move)
+    # for c in reversed(classes):
+    #     bpy.utils.unregister_class(c)
+
