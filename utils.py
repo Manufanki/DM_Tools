@@ -377,37 +377,6 @@ def delete_hierarchy(obj):
         bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
 
 
-
-def updateTouch0(self, context):
-    touch_pos = Vector((self.touch0[0], self.touch0[1]))
-
-    area =  self.screen.areas[0]
-    region = None
-    rv3d = None
-    for reg in area.regions:
-        if reg.type == 'WINDOW':
-            region = reg
-            rv3d = reg.data
-
-    print("Region ------" ,region)
-
-    if region is None or rv3d is None:
-        return
-    print("Region ------" ,region)
-    view_vector_mouse = view3d_utils.region_2d_to_vector_3d(region, rv3d,touch_pos)# self.touch_pos)
-    ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
-    direction = ray_origin_mouse + (view_vector_mouse * 1000)
-    direction =  direction - ray_origin_mouse
-    result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
-    print(result)
-
-    dm_property = context.scene.dm_property
-    
-    for char in dm_property.characterlist:
-        print(char.character.name)
-        char.character.location = location
-
-
 def selectCharacter(self, context):
     bpy.ops.object.select_all(action='DESELECT')
     if self.characterlist_data_index != -1:

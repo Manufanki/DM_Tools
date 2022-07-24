@@ -30,14 +30,19 @@ import bpy
 import kivy
 
 kivy.require('1.0.6')
+from kivy.config import Config
 
+Config.set('graphics', 'maxfps', '15')
+Config.set('input', 'mouse', 'mouse,disable_on_activity')
 from kivy.app import App
+from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.label import Label
 from kivy.graphics import Color, Rectangle, Point, GraphicException
 from kivy.metrics import dp
 from kivy.lang import Builder
 
+from bpy_extras import view3d_utils
 from mathutils import Vector
 
 import win32gui
@@ -75,10 +80,10 @@ def execute_queued_functions():
     window = bpy.context.window_manager.windows[0]
     ctx = {'window': window, 'screen': window.screen}  
     
-    print(threading.current_thread().name, "timer consuming queue")
+    #print(threading.current_thread().name, "timer consuming queue")
     while not execution_queue.empty():
         function = execution_queue.get()        
-        print(threading.current_thread().name, "function found name:", function)
+        #print(threading.current_thread().name, "function found name:", function)
         function(ctx)
     return 1.0
 
@@ -106,7 +111,7 @@ def calculate_points(x1, y1, x2, y2, steps=5):
 class Touchtracer(FloatLayout):
 
     def normalize_pressure(self, pressure):
-        print(pressure)
+        #print(pressure)
         # this might mean we are on a device whose pressure value is
         # incorrectly reported by SDL2, like recent iOS devices.
         if pressure == 0.0:
@@ -121,9 +126,11 @@ class Touchtracer(FloatLayout):
         ud = touch.ud
         ud['group'] = g = str(touch.uid)
         pointsize = 5
-        #print(touch.profile)
-        #bpy.context.scene.touch_property.touch0 = (int(touch.x),int(touch.y),0)
-        #bpy.ops.view3d.raycast(touch_pos = Vector((touch.x, touch.y)))
+    
+        if isinstance(touch.id, int):
+            touch_pos = Vector((int(touch.x), int(touch.y)))
+            set_touch_id(self, bpy.context,touch.id, touch_pos)
+
 
         if 'pressure' in touch.profile:
             ud['pressure'] = touch.pressure
@@ -151,9 +158,13 @@ class Touchtracer(FloatLayout):
         ud['lines'][0].pos = touch.x, 0
         ud['lines'][1].pos = 0, touch.y
 
-        #print(touch.x, touch.y)
-        bpy.context.scene.touch_property.touch0 = (int(touch.x),int(touch.y),0)
-      
+        if isinstance(touch.id, int):
+            for char in bpy.context.scene.dm_property.characterlist:
+                if char.character.player_property.touch_id == touch.id:
+                    touch_pos = Vector((int(touch.x), int(touch.y)))
+                    updateTouch(self, bpy.context,touch.id, touch_pos)
+
+
 
         index = -1
 
@@ -202,7 +213,8 @@ class Touchtracer(FloatLayout):
     def on_touch_up(self, touch):
         if touch.grab_current is not self:
             return
-        touch.ungrab(self)
+        touch.ungrab(self)   
+            
         ud = touch.ud
         self.canvas.remove_group(ud['group'])
         self.remove_widget(ud['label'])
@@ -230,12 +242,75 @@ class TouchtracerApp(App):
 
 
     def build(self):
+        Clock.schedule_interval(lambda dt: print(Clock.get_fps()), 1)
         return Touchtracer()
 
     def on_pause(self):
         return True
 
+def set_touch_id(self, context,id,touch_pos):
+        touch_pos = Vector((touch_pos[0], touch_pos[1]))
+        dm_property = context.scene.dm_property
+        area =  dm_property.screen.areas[0]
+        region = None
+        rv3d = None
+        for reg in area.regions:
+            if reg.type == 'WINDOW':
+                region = reg
+                rv3d = reg.data
 
+        if region is None or rv3d is None:
+            return
+        view_vector_mouse = view3d_utils.region_2d_to_vector_3d(region, rv3d,touch_pos)# self.touch_pos)
+        ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
+        direction = ray_origin_mouse + (view_vector_mouse * 1000)
+        direction =  direction - ray_origin_mouse
+        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
+        
+        if result is None:
+            return
+        dm_property = context.scene.dm_property
+
+        for char in dm_property.characterlist:
+            if obj == char.character:
+                char.character.player_property.touch_id = id
+                return  
+
+
+
+
+def updateTouch(self, context,id,touch_pos):
+
+        dm_property = context.scene.dm_property
+
+
+        area =  dm_property.screen.areas[0]
+        region = None
+        rv3d = None
+        for reg in area.regions:
+            if reg.type == 'WINDOW':
+                region = reg
+                rv3d = reg.data
+
+        if region is None or rv3d is None:
+            return
+
+        view_vector_mouse = view3d_utils.region_2d_to_vector_3d(region, rv3d,touch_pos)# self.touch_pos)
+        ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
+        direction = ray_origin_mouse + (view_vector_mouse * 1000)
+        direction =  direction - ray_origin_mouse
+        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
+        
+        
+        if result is None:
+            return
+
+        for char in dm_property.characterlist:
+            if obj == char.character:
+                return  
+        for char in dm_property.characterlist:
+            if char.character.player_property.touch_id == id:
+                char.character.location = location
 
 class TOUCH_OT_move(bpy.types.Operator):
     "Add Map Collection to the Scene"
@@ -243,23 +318,32 @@ class TOUCH_OT_move(bpy.types.Operator):
     bl_label = "move players"
     
     # def execute(self, context: 'Context'):
-        
+    _timer = None  
     #     return {'FINISHED'}
 
-    def modal(self, context: bpy.types.Context, event: bpy.types.Event):
+    # def modal(self, context, event):
+    #     if event.type in {'ESC'}:
+    #         self.cancel(context)
+    #         TouchtracerApp.stop()
+    #         touchInput.setDaemon(False)
+    #         touchInput.join() 
+    #         return {'CANCELLED'}
 
-        
-        if event.type =='ESC':
-            TouchtracerApp.stop()
-            touchInput.setDaemon(False)
-            touchInput.join() 
-            return {'FINISHED'}
-        return {'PASS_THROUGH'}
-    def invoke(self, context, event):
+    #     if event.type == 'TIMER':
+    #     return {'PASS_THROUGH'}
+
+    def execute(self, context):
         touchInput.setDaemon(True)
         touchInput.start()
-        context.window_manager.modal_handler_add(self)
+        #context.window_manager.modal_handler_add(self)
+        #wm = context.window_manager
+        #self._timer = wm.event_timer_add(.2, window=context.window)
+        #wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+    def cancel(self, context):
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
 
 
 #classes = (TOUCH_OT_move)
