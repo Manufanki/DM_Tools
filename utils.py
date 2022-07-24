@@ -1,5 +1,6 @@
-from this import d
 import bpy
+from bpy_extras import view3d_utils
+from mathutils import Vector
 
 #region Methods
 def GetCurrentUnits():
@@ -374,6 +375,7 @@ def delete_hierarchy(obj):
 
     for n in names:
         bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
+
 
 def selectCharacter(self, context):
     bpy.ops.object.select_all(action='DESELECT')

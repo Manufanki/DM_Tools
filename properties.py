@@ -53,6 +53,11 @@ class PlayerProperties(bpy.types.PropertyGroup):
         max = 100,
         update=update_move_distance
     )
+
+    touch_id : bpy.props.IntProperty(
+        default = -1,
+    )
+
     distance_circle : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
     darkvision : bpy.props.FloatProperty(
@@ -183,12 +188,17 @@ class DMProperties(bpy.types.PropertyGroup):
     master_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
+    screen : bpy.props.PointerProperty(type=bpy.types.Screen)
+
+
+
+
 blender_classes = [
     PlayerProperties,    
     FloorPointerProperties,
     MapPointerProperties,
     CharacterPointerProperties,
-    DMProperties
+    DMProperties,
     ]
 def register():
     for blender_class in blender_classes:
