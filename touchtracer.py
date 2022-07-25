@@ -25,15 +25,18 @@ copy/paste this directory into /sdcard/kivy/touchtracer on your Android device.
 '''
 __version__ = '1.0'
 
+from doctest import FAIL_FAST
+from time import sleep
 import bpy
 
 import kivy
+import numpy as np
 
 kivy.require('1.0.6')
 from kivy.config import Config
 
-Config.set('graphics', 'maxfps', '15')
-Config.set('input', 'mouse', 'mouse,disable_on_activity')
+Config.set('graphics', 'maxfps', '30')
+#Config.set('input', 'mouse', 'mouse,disable_on_activity')
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.floatlayout import FloatLayout
@@ -49,11 +52,9 @@ import win32gui
 import win32con
 import win32api
 import winxpgui
-import win32process
-import os
 
 from random import random
-from math import sqrt
+from math import dist, fabs, sqrt
 
 import threading
 import bpy
@@ -66,15 +67,22 @@ execution_queue = queue.Queue()
 
 
 class TouchThread(threading.Thread):
-     def __init__(self,port):
+    thread_is_alive = False
+    touch_active = False
+    def __init__(self,port):
          super(TouchThread, self).__init__()
          self.port=port
+    
+    def stop(self):
+        print("stop")
+        TouchtracerApp().stop()
  
-     def run(self):
+    def run(self):
+        self.thread_is_alive = True
         TouchtracerApp().run()
+        self.join()
  
 touchInput = TouchThread(8000)
-
 
 def execute_queued_functions():
     window = bpy.context.window_manager.windows[0]
@@ -83,12 +91,9 @@ def execute_queued_functions():
     #print(threading.current_thread().name, "timer consuming queue")
     while not execution_queue.empty():
         function = execution_queue.get()        
-        #print(threading.current_thread().name, "function found name:", function)
+        print(threading.current_thread().name, "function found name:", function)
         function(ctx)
     return 1.0
-
-
-
 
 
 def calculate_points(x1, y1, x2, y2, steps=5):
@@ -106,7 +111,38 @@ def calculate_points(x1, y1, x2, y2, steps=5):
         o.extend([lastx, lasty])
     return o
 
+def adjust_windows():
+    window = win32gui.FindWindow(None, "Touchtracer")
+    alpha = 100
+    if window == 0:
+        return
+    if bpy.context.scene.dm_property.adjust_windows == True:
+        alpha = 2
 
+
+    win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
+    winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
+
+    return
+    blender_window = win32gui.FindWindow(None, "Blender")
+    if window == 0 or blender_window == 0:
+        return 
+    x,y,w,h = get_window_rect(window)
+    a,b,c,d = get_window_rect(blender_window)
+
+    if a != x or b != y or c != w or d != h:
+        win32gui.SetWindowPos(blender_window,win32con.HWND_TOP, x, y, w, h, 0) 
+
+def get_window_rect(hwnd):
+    rect = win32gui.GetWindowRect(hwnd)
+    x = rect[0]
+    y = rect[1]
+    w = rect[2] - x
+    h = rect[3] - y
+    print("Window %s:" % win32gui.GetWindowText(hwnd))
+    print("\tLocation: (%d, %d)" % (x, y))
+    print("\t    Size: (%d, %d)" % (w, h))
+    return x,y,w,h
 
 class Touchtracer(FloatLayout):
 
@@ -162,7 +198,7 @@ class Touchtracer(FloatLayout):
             for char in bpy.context.scene.dm_property.characterlist:
                 if char.character.player_property.touch_id == touch.id:
                     touch_pos = Vector((int(touch.x), int(touch.y)))
-                    updateTouch(self, bpy.context,touch.id, touch_pos)
+                    update_player_pos(self, bpy.context,touch.id, touch_pos)
 
 
 
@@ -226,27 +262,41 @@ class Touchtracer(FloatLayout):
         label.pos = touch.pos
         label.size = label.texture_size[0] + 20, label.texture_size[1] + 20
 
-
 class TouchtracerApp(App):
     title = 'Touchtracer'
     icon = 'icon.png'
 
     def on_start(self):
         window = win32gui.FindWindow(None, "Touchtracer")
-
+        blender_window = win32gui.FindWindow(None, "Blender")
+        x,y,w,h = get_window_rect(blender_window)
         win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
-        winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), 180, win32con.LWA_ALPHA)
-        win32gui.SetWindowPos(window, win32con.HWND_TOPMOST, 2000, 100, 1000, 1000, 0) 
+        winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), 100, win32con.LWA_ALPHA)
+        win32gui.SetWindowPos(window, win32con.HWND_TOPMOST, x, y, w, h, 0) 
 
        
-
-
     def build(self):
-        Clock.schedule_interval(lambda dt: print(Clock.get_fps()), 1)
+        Clock.schedule_interval(lambda dt: print("running"), 1)
+        Clock.schedule_interval(lambda dt: adjust_windows(), 1)
         return Touchtracer()
 
     def on_pause(self):
         return True
+
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    angle = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+    if np.dot(Vector((1,0,0)),v2_u) < 0:
+        return angle
+    else:
+        return -angle
 
 def set_touch_id(self, context,id,touch_pos):
         touch_pos = Vector((touch_pos[0], touch_pos[1]))
@@ -271,15 +321,22 @@ def set_touch_id(self, context,id,touch_pos):
             return
         dm_property = context.scene.dm_property
 
+        distance = 1000
+        player_index = -1
+        index = -1
         for char in dm_property.characterlist:
+            index += 1
             if obj == char.character:
                 char.character.player_property.touch_id = id
-                return  
+                return
+            d = np.linalg.norm(location-char.character.location)
+            if d < 5 and d < distance:
+                distance = d
+                player_index = index
+        if player_index != -1:
+                dm_property.characterlist[player_index].character.player_property.touch_id = id
 
-
-
-
-def updateTouch(self, context,id,touch_pos):
+def update_player_pos(self, context,id,touch_pos):
 
         dm_property = context.scene.dm_property
 
@@ -310,40 +367,38 @@ def updateTouch(self, context,id,touch_pos):
                 return  
         for char in dm_property.characterlist:
             if char.character.player_property.touch_id == id:
+                
+                dir = location - char.character.location 
+                forward = Vector((0,1,0))
+                char.character.rotation_euler[2] = angle_between(forward, dir)
                 char.character.location = location
+
 
 class TOUCH_OT_move(bpy.types.Operator):
     "Add Map Collection to the Scene"
     bl_idname = "touch.move"
     bl_label = "move players"
     
-    # def execute(self, context: 'Context'):
-    _timer = None  
-    #     return {'FINISHED'}
-
-    # def modal(self, context, event):
-    #     if event.type in {'ESC'}:
-    #         self.cancel(context)
-    #         TouchtracerApp.stop()
-    #         touchInput.setDaemon(False)
-    #         touchInput.join() 
-    #         return {'CANCELLED'}
-
-    #     if event.type == 'TIMER':
-    #     return {'PASS_THROUGH'}
-
     def execute(self, context):
-        touchInput.setDaemon(True)
-        touchInput.start()
-        #context.window_manager.modal_handler_add(self)
-        #wm = context.window_manager
-        #self._timer = wm.event_timer_add(.2, window=context.window)
-        #wm.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
+        if not touchInput.isDaemon:
+            touchInput.setDaemon(True)
+        
+        if touchInput.is_alive() == False:
+            touchInput.touch_active = True
+            touchInput.start()
 
-    def cancel(self, context):
-        wm = context.window_manager
-        wm.event_timer_remove(self._timer)
+            
+        else:
+            if touchInput.is_alive(): 
+                touchInput.touch_active = True
+        
+
+
+
+
+       
+        return {'FINISHED'}
+
 
 
 #classes = (TOUCH_OT_move)

@@ -266,6 +266,9 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("window.dnd_new", icon ='WINDOW')
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
+            col.operator("touch.use_touch")
+            col.prop(dm_property, "adjust_windows", text="adjust windows automaticly")
+
 #region lists
 
 class DM_UL_Playerlist_player(bpy.types.UIList):

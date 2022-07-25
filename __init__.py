@@ -24,7 +24,16 @@ import subprocess
 import importlib
 from collections import namedtuple
 
-from . touchtracer import register
+kivy_installed = False
+
+try:
+    from . touchtracer import register
+    print("Touchtracer inported")
+    kivy_installed = True
+except ModuleNotFoundError as e:
+    print(e)
+    kivy_installed = False
+    print("Kivi is not installed")
 from . properties import *
 from . utils import *
 from . ui import *
@@ -929,41 +938,27 @@ def install_and_import_module(module_name, package_name=None, global_name=None):
     import_module(module_name, global_name)
 
 
-class EXAMPLE_OT_dummy_operator(bpy.types.Operator):
-    bl_idname = "example.dummy_operator"
-    bl_label = "Dummy Operator"
+class TOUCH_OT_use_touch_operator(bpy.types.Operator):
+    bl_idname = "touch.use_touch"
+    bl_label = "Use Touchscreen"
     bl_description = "This operator tries to use kivy."
     bl_options = {"REGISTER"}
 
+    @classmethod
+    def poll(self, context):
+        if context.scene.dm_property.screen is not None and kivy_installed:
+            return True
+        else:
+            return False 
+
     def execute(self, context):
-        
         bpy.ops.touch.move('INVOKE_DEFAULT')
         return {"FINISHED"}
 
 
-class EXAMPLE_PT_panel(bpy.types.Panel):
-    bl_label = "Example Panel"
-    bl_category = "Example Tab"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-
-    def draw(self, context):
-        layout = self.layout
-
-        for dependency in dependencies:
-            if dependency.name is None and hasattr(globals()[dependency.module], "__version__"):
-                layout.label(text=f"{dependency.module} {globals()[dependency.module].__version__}")
-            elif hasattr(globals()[dependency.name], "__version__"):
-                layout.label(text=f"{dependency.module} {globals()[dependency.name].__version__}")
-            else:
-                layout.label(text=f"{dependency.module}")
-
-        layout.operator(EXAMPLE_OT_dummy_operator.bl_idname)
-
-
-class EXAMPLE_PT_warning_panel(bpy.types.Panel):
-    bl_label = "Example Warning"
-    bl_category = "Example Tab"
+class TOUCH_PT_warning_panel(bpy.types.Panel):
+    bl_label = "Dependency Warning"
+    bl_category = 'DM Tools'
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
 
@@ -974,11 +969,11 @@ class EXAMPLE_PT_warning_panel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
 
-        lines = [f"Please install the missing dependencies for the \"{bl_info.get('name')}\" add-on.",
+        lines = [f"To use a touchscreen to move the player install the missing dependencies for the \"{bl_info.get('name')}\" add-on.",
                  f"1. Open the preferences (Edit > Preferences > Add-ons).",
                  f"2. Search for the \"{bl_info.get('name')}\" add-on.",
                  f"3. Open the details section of the add-on.",
-                 f"4. Click on the \"{EXAMPLE_OT_install_dependencies.bl_label}\" button.",
+                 f"4. Click on the \"{TOUCH_OT_install_dependencies.bl_label}\" button.",
                  f"   This will download and install the missing Python packages, if Blender has the required",
                  f"   permissions.",
                  f"If you're attempting to run the add-on from the text editor, you won't see the options described",
@@ -986,14 +981,15 @@ class EXAMPLE_PT_warning_panel(bpy.types.Panel):
                  f"1. Open the add-on preferences (Edit > Preferences > Add-ons).",
                  f"2. Press the \"Install\" button.",
                  f"3. Search for the add-on file.",
-                 f"4. Confirm the selection by pressing the \"Install Add-on\" button in the file browser."]
+                 f"4. Confirm the selection by pressing the \"Install Add-on\" button in the file browser."
+                 f"    After the dependencies are installed you have to restart Blender"]
 
         for line in lines:
             layout.label(text=line)
 
 
-class EXAMPLE_OT_install_dependencies(bpy.types.Operator):
-    bl_idname = "example.install_dependencies"
+class TOUCH_OT_install_dependencies(bpy.types.Operator):
+    bl_idname = "touch.install_dependencies"
     bl_label = "Install dependencies"
     bl_description = ("Downloads and installs the required python packages for this add-on. "
                       "Internet connection is required. Blender may have to be started with "
@@ -1026,18 +1022,12 @@ class EXAMPLE_OT_install_dependencies(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class EXAMPLE_preferences(bpy.types.AddonPreferences):
+class TOUCH_preferences(bpy.types.AddonPreferences):
     bl_idname = __name__
 
     def draw(self, context):
         layout = self.layout
-        layout.operator(EXAMPLE_OT_install_dependencies.bl_idname, icon="CONSOLE")
-
-
-preference_classes = (EXAMPLE_PT_warning_panel,
-                      EXAMPLE_OT_install_dependencies,
-                      EXAMPLE_preferences)
-
+        layout.operator(TOUCH_OT_install_dependencies.bl_idname, icon="CONSOLE")
 
 
 blender_classes = [
@@ -1066,11 +1056,13 @@ blender_classes = [
     AddWhiteMapImage,
     AddGrid,
     LIGHT_Create_Torch,
+    TOPBAR_PT_annotation_layers,
+    TOUCH_OT_use_touch_operator,
+    TOUCH_PT_warning_panel,
+    TOUCH_OT_install_dependencies,
+    TOUCH_preferences,
     VIEW3D_PT_grease_pencil,
     VIEW3D_PT_annotation_onion,
-    TOPBAR_PT_annotation_layers,
-    EXAMPLE_OT_dummy_operator,
-    EXAMPLE_PT_panel
 ]
 
 # Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
@@ -1078,18 +1070,18 @@ def register():
     global dependencies_installed
     dependencies_installed = False
 
-    for cls in preference_classes:
-        bpy.utils.register_class(cls)
-
     try:
         for dependency in dependencies:
             import_module(module_name=dependency.module, global_name=dependency.name)
         dependencies_installed = True
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as e:
         # Don't register other panels, operators etc.
-        return
+        print(e)
+        #return
 
-    touchtracer.register()
+    if kivy_installed == True:
+        print("TOUCHTRACER REGISTER")
+        touchtracer.register()
     import_images.register()
     properties.register()
     ui.register()
@@ -1106,10 +1098,10 @@ def register():
     #bpy.context.scene.dm_property.master_coll = bpy.context.scene.collection
 
 def unregister():
-    for cls in preference_classes:
-        bpy.utils.unregister_class(cls)
 
-    touchtracer.unregister()    
+
+    if kivy_installed == True:
+        touchtracer.unregister()      
     properties.unregister()
     ui.unregister()
     import_images.unregister()

@@ -2,8 +2,6 @@ import bpy
 
 from . utils import *
 #region Properties
-
-
 class FloorPointerProperties(bpy.types.PropertyGroup):
     floor : bpy.props.PointerProperty(type=bpy.types.Collection)
 
@@ -189,7 +187,7 @@ class DMProperties(bpy.types.PropertyGroup):
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
-
+    adjust_windows : bpy.props.BoolProperty()
 
 
 
