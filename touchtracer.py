@@ -68,7 +68,7 @@ execution_queue = queue.Queue()
 
 class TouchThread(threading.Thread):
     thread_is_alive = False
-    touch_active = False
+    touch_active = True
     def __init__(self,port):
          super(TouchThread, self).__init__()
          self.port=port
@@ -78,9 +78,8 @@ class TouchThread(threading.Thread):
         TouchtracerApp().stop()
  
     def run(self):
-        self.thread_is_alive = True
         TouchtracerApp().run()
-        self.join()
+            
  
 touchInput = TouchThread(8000)
 
@@ -286,6 +285,9 @@ class TouchtracerApp(App):
 
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
+    if np.linalg.norm(vector) == 0:
+        return vector
+    
     return vector / np.linalg.norm(vector)
 
 def angle_between(v1, v2):
@@ -380,17 +382,20 @@ class TOUCH_OT_move(bpy.types.Operator):
     bl_label = "move players"
     
     def execute(self, context):
+
+
         if not touchInput.isDaemon:
             touchInput.setDaemon(True)
         
-        if touchInput.is_alive() == False:
+        if touchInput.thread_is_alive == False:
             touchInput.touch_active = True
             touchInput.start()
 
-            
-        else:
-            if touchInput.is_alive(): 
+        elif touchInput.is_alive():
+            if touchInput.touch_active == False:
                 touchInput.touch_active = True
+            else:
+                touchInput.stop()
         
 
 
