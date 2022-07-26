@@ -256,24 +256,6 @@ class PLAYER_update(bpy.types.Operator):
         bpy.ops.list.list_op(menu_active = 8)
         return {'FINISHED'}
 
-
-class PLAYER_move(bpy.types.Operator):
-    "Add Map Collection to the Scene"
-    bl_idname = "player.move"
-    bl_label = "move players"
-    
-
-    x_pos: bpy.props.FloatProperty(name="xpos")
-    y_pos: bpy.props.FloatProperty(name="ypos")
-    def execute(self, context):
-        dm_property = context.scene.dm_property
-        
-        for char in dm_property.characterlist:
-            print(char.character.name)
-            char.character.location.x = 10#self.x_pos
-            char.character.location.y = 10#self.y_pos
-        return {'FINISHED'}
-
 class MAP_add(bpy.types.Operator):
     "Add Map Collection to the Scene"
     bl_idname = "map.add"
@@ -359,7 +341,6 @@ class FLOOR_add(bpy.types.Operator):
         gpl.color = (1,1,1)
         map.annotation.layers.active = gpl
        
-        print("TEST",gpl)
         collection_pointer.annotation = gpl
         
         return {'FINISHED'}
@@ -1037,7 +1018,6 @@ blender_classes = [
     PLAYER_Torch_Button,
     PLAYER_add,
     PLAYER_update,
-    PLAYER_move,
     MAP_add,
     MAP_update,
     FLOOR_add,

@@ -142,10 +142,10 @@ def CreatePlayerMaterial(self, context, color):
     material_out = material_player.node_tree.nodes.get('Material Output')
     material_out.location = (0,0)
 
-    rgb_node = material_player.node_tree.nodes.new('ShaderNodeRGB')
-    rgb_node.location = (-200,0)
-    rgb_node.outputs[0].default_value = color
-    material_player.node_tree.links.new(rgb_node.outputs[0], material_out.inputs[0])
+    emit_node = material_player.node_tree.nodes.new('ShaderNodeEmission')
+    emit_node.location = (-200,0)
+    emit_node.inputs[0].default_value = color
+    material_player.node_tree.links.new(emit_node.outputs[0], material_out.inputs[0])
 
     material_player.shadow_method = 'NONE'
     return material_player
@@ -316,6 +316,7 @@ def sort_player_list(self,context):
         print("after:" ,i, " : " , dif)
         print()
         print()
+
 
 
 def update_maps(self,context, collection):

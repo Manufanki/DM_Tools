@@ -19,12 +19,17 @@ class CharacterPointerProperties(bpy.types.PropertyGroup):
 
 class PlayerProperties(bpy.types.PropertyGroup):
 
-
+    def update_touch_active(self, context):
+        emit_node = self.player_material.node_tree.nodes.get('Emission')
+        if self.touch_id != -1:
+            emit_node.inputs[1].default_value = 300
+        else:
+            emit_node.inputs[1].default_value = 1
     def update_player_color(self, context):
         if self.player_material != None:
             #print(self.player_material.node_tree.nodes.get('RGB'))
-            rgb_node = self.player_material.node_tree.nodes.get('RGB')
-            rgb_node.outputs[0].default_value = self.player_color
+            rgb_node = self.player_material.node_tree.nodes.get('Emission')
+            rgb_node.inputs[0].default_value = self.player_color
     def update_move_distance(self,context):
         unitinfo = GetCurrentUnits()
         unit_dist = self.move_distance*2
@@ -54,6 +59,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
 
     touch_id : bpy.props.IntProperty(
         default = -1,
+        update=update_touch_active
     )
 
     distance_circle : bpy.props.PointerProperty(type=bpy.types.Object)
@@ -187,7 +193,8 @@ class DMProperties(bpy.types.PropertyGroup):
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
-    adjust_windows : bpy.props.BoolProperty()
+    adjust_touchwindow : bpy.props.BoolProperty()
+    hide_touchwindow : bpy.props.BoolProperty()
 
 
 

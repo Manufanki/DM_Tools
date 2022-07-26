@@ -267,7 +267,8 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
             col.operator("touch.use_touch")
-            col.prop(dm_property, "adjust_windows", text="adjust windows automaticly")
+            col.prop(dm_property, "adjust_touchwindow", text="Adjust touchwindow")
+            col.prop(dm_property, "hide_touchwindow", text="Hide touchwindow")
 
 #region lists
 

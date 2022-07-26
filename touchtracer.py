@@ -35,7 +35,7 @@ import numpy as np
 kivy.require('1.0.6')
 from kivy.config import Config
 
-Config.set('graphics', 'maxfps', '30')
+Config.set('graphics', 'maxfps', '10')
 #Config.set('input', 'mouse', 'mouse,disable_on_activity')
 from kivy.app import App
 from kivy.clock import Clock
@@ -115,22 +115,26 @@ def adjust_windows():
     alpha = 100
     if window == 0:
         return
-    if bpy.context.scene.dm_property.adjust_windows == True:
+
+    if bpy.context.scene.dm_property.hide_touchwindow == True:
         alpha = 2
+        winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
 
+    if bpy.context.scene.dm_property.adjust_touchwindow == True:
+        x,y,w,h = get_window_rect(window)
 
-    win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
-    winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
+        win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
+        winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
+        win32gui.SetWindowPos(window, win32con.HWND_TOPMOST, x, y, w, h, 0) 
+    # return
+    # blender_window = win32gui.FindWindow(None, "Blender")
+    # if window == 0 or blender_window == 0:
+    #     return 
+    # x,y,w,h = get_window_rect(window)
+    # a,b,c,d = get_window_rect(blender_window)
 
-    return
-    blender_window = win32gui.FindWindow(None, "Blender")
-    if window == 0 or blender_window == 0:
-        return 
-    x,y,w,h = get_window_rect(window)
-    a,b,c,d = get_window_rect(blender_window)
-
-    if a != x or b != y or c != w or d != h:
-        win32gui.SetWindowPos(blender_window,win32con.HWND_TOP, x, y, w, h, 0) 
+    # if a != x or b != y or c != w or d != h:
+    #     win32gui.SetWindowPos(blender_window,win32con.HWND_TOP, x, y, w, h, 0) 
 
 def get_window_rect(hwnd):
     rect = win32gui.GetWindowRect(hwnd)
@@ -138,9 +142,9 @@ def get_window_rect(hwnd):
     y = rect[1]
     w = rect[2] - x
     h = rect[3] - y
-    print("Window %s:" % win32gui.GetWindowText(hwnd))
-    print("\tLocation: (%d, %d)" % (x, y))
-    print("\t    Size: (%d, %d)" % (w, h))
+    # print("Window %s:" % win32gui.GetWindowText(hwnd))
+    # print("\tLocation: (%d, %d)" % (x, y))
+    # print("\t    Size: (%d, %d)" % (w, h))
     return x,y,w,h
 
 class Touchtracer(FloatLayout):
@@ -249,6 +253,11 @@ class Touchtracer(FloatLayout):
         if touch.grab_current is not self:
             return
         touch.ungrab(self)   
+
+        dm_property = bpy.context.scene.dm_property
+        for char in dm_property.characterlist:
+            if char.character.player_property.touch_id == touch.id:
+                char.character.player_property.touch_id = -1
             
         ud = touch.ud
         self.canvas.remove_group(ud['group'])
@@ -267,16 +276,20 @@ class TouchtracerApp(App):
 
     def on_start(self):
         window = win32gui.FindWindow(None, "Touchtracer")
+        if window == 0:
+            return
         blender_window = win32gui.FindWindow(None, "Blender")
         x,y,w,h = get_window_rect(blender_window)
+        if blender_window == 0:
+           x,y,w,h = 100,100,100,100
         win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
         winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), 100, win32con.LWA_ALPHA)
         win32gui.SetWindowPos(window, win32con.HWND_TOPMOST, x, y, w, h, 0) 
 
        
     def build(self):
-        Clock.schedule_interval(lambda dt: print("running"), 1)
-        Clock.schedule_interval(lambda dt: adjust_windows(), 1)
+        Clock.schedule_interval(lambda dt: print(Clock.get_fps()), 10)
+        Clock.schedule_interval(lambda dt: adjust_windows(), 2)
         return Touchtracer()
 
     def on_pause(self):
@@ -323,6 +336,7 @@ def set_touch_id(self, context,id,touch_pos):
             return
         dm_property = context.scene.dm_property
 
+
         distance = 1000
         player_index = -1
         index = -1
@@ -332,7 +346,7 @@ def set_touch_id(self, context,id,touch_pos):
                 char.character.player_property.touch_id = id
                 return
             d = np.linalg.norm(location-char.character.location)
-            if d < 5 and d < distance:
+            if d < 5 and d < distance and char.character.player_property.touch_id == -1:
                 distance = d
                 player_index = index
         if player_index != -1:
@@ -361,7 +375,7 @@ def update_player_pos(self, context,id,touch_pos):
         result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
         
         
-        if result is None:
+        if result is None or obj is None:
             return
 
         for char in dm_property.characterlist:
