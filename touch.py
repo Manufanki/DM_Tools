@@ -183,14 +183,13 @@ class TOUCH_OT_move(bpy.types.Operator):
 
                     touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
                     set_touch_id(bpy.context,e.finger_id, touch_pos)
-                    print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
+                    #print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
                 elif e.type == pg.FINGERMOTION:
                     touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
                     for char in bpy.context.scene.dm_property.characterlist:
                         if char.character.player_property.touch_id == e.finger_id:
                             update_player_pos(bpy.context,e.finger_id, touch_pos)
-                            print(touch_pos)
-                    print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
+                    #print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
                 elif e.type == pg.FINGERUP:
                     for char in dm_property.characterlist:
                         if char.character.player_property.touch_id == e.finger_id:

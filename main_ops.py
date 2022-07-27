@@ -1,5 +1,7 @@
 
 import bpy
+import random
+import colorsys
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
     AnnotationOnionSkin,
@@ -65,8 +67,9 @@ class PLAYER_add(bpy.types.Operator):
     bl_label = "Add Player"
     
 
-    tmp_is_enemy : bpy.props.BoolProperty(name ="NPC", default= False)
+    tmp_is_npc : bpy.props.BoolProperty(name ="NPC", default= False)
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "player")
+
 
     def invoke(self, context, event):
                 
@@ -75,10 +78,14 @@ class PLAYER_add(bpy.types.Operator):
     def execute(self, context):
         dm_prop = bpy.context.scene.dm_property
         
+        rgb = colorsys.hsv_to_rgb(random.random(),1,1)
+        tmp_player_color = (rgb[0],rgb[1],rgb[2],1)
 
         player_height = 2
-        if self.tmp_is_enemy == True:
+        if self.tmp_is_npc == True:
             player_height = 0.5
+            rgb = colorsys.hsv_to_rgb(random.uniform(0, 1),1,.05)
+            tmp_player_color = (rgb[0],rgb[1],rgb[2],1)
         bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
         player = bpy.context.object
         component_list = []
@@ -96,9 +103,11 @@ class PLAYER_add(bpy.types.Operator):
 
         player_property.list_index = dm_prop.characterlist_data_index
         player_property.name = self.tmp_name
-        player_property.is_enemy = self.tmp_is_enemy
-        
-        player_property.player_material = CreatePlayerMaterial(self, context, (1,1,1,1))
+        player_property.is_npc = self.tmp_is_npc
+        if self.tmp_is_npc == True:
+            player_property.player_material = CreateNPCMaterial(self, context, tmp_player_color)
+        else:
+            player_property.player_material = CreatePlayerMaterial(self, context, tmp_player_color)
         player.data.materials.append(player_property.player_material)
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
@@ -111,6 +120,7 @@ class PLAYER_add(bpy.types.Operator):
 
         player_property.distance_circle = distance_circel
         player_property.move_distance = player_property.move_distance
+        player_property.player_color = tmp_player_color
         distance_circel.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         component_list.append(distance_circel)
 
@@ -199,11 +209,11 @@ class PLAYER_add(bpy.types.Operator):
             bpy.context.scene.collection.children.unlink(player_property.player_coll)
             bpy.context.scene.collection.children.unlink(player_property.light_coll)
 
-        player_property.light_coll.hide_viewport = player_property.is_enemy
+        player_property.light_coll.hide_viewport = player_property.is_npc
         
         torch.hide_set(True)
         torch.hide_select = True
-        if player_property.is_enemy == False:
+        if player_property.is_npc == False:
             point.hide_select = True
             spot.hide_select = True
             spotDark.hide_select = True
@@ -388,6 +398,7 @@ class SCENE_Setup(bpy.types.Operator):
         bpy.context.scene.eevee.shadow_cascade_size = '1024'
         bpy.context.scene.eevee.use_shadow_high_bitdepth = True
         bpy.context.scene.eevee.use_bloom = True
+        bpy.context.scene.eevee.bloom_radius = 1.5
 
         bpy.context.space_data.shading.type = 'MATERIAL'
 
@@ -566,6 +577,7 @@ class MESH_Create_GreasePencil(bpy.types.Operator):
         gpencil.name = "gpencil"
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, gpencil)
         bpy.context.view_layer.objects.active = gpencil
+        bpy.ops.gpencil.paintmode_toggle()
         return{'FINISHED'}
 
 class MESH_Create_Cave(bpy.types.Operator):
@@ -627,7 +639,7 @@ class AddWhiteMapImage(bpy.types.Operator):
         bpy.ops.mesh.primitive_plane_add(size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
         map = context.object
         map.name = "White_BG"
-        map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
+        #map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
         dm_property = context.scene.dm_property
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             map)
@@ -824,7 +836,7 @@ class TOUCH_OT_use_touch_operator(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        if context.scene.dm_property.screen is not None and pygame_installed:
+        if pygame_installed:
             return True
         else:
             return False 

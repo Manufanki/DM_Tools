@@ -4,9 +4,12 @@ from . utils import *
 #region Properties
 class FloorPointerProperties(bpy.types.PropertyGroup):
     floor : bpy.props.PointerProperty(type=bpy.types.Collection)
+    name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.floor))
+
 
 class MapPointerProperties(bpy.types.PropertyGroup):
     map : bpy.props.PointerProperty(type=bpy.types.Collection)
+    name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.map))
     floorlist_data_index : bpy.props.IntProperty(
         update=selectFloor
     )
@@ -20,14 +23,24 @@ class CharacterPointerProperties(bpy.types.PropertyGroup):
 class PlayerProperties(bpy.types.PropertyGroup):
 
     def update_touch_active(self, context):
-        emit_node = self.player_material.node_tree.nodes.get('Emission')
-        if self.touch_id != -1:
-            emit_node.inputs[1].default_value = 300
+        if self.is_npc:
+            emit_node = self.player_material.node_tree.nodes.get('Principled BSDF')
+            if self.touch_id != -1:
+                emit_node.inputs[20].default_value = 300
+            else:
+                emit_node.inputs[20].default_value = 0
         else:
-            emit_node.inputs[1].default_value = 1
+            emit_node = self.player_material.node_tree.nodes.get('Emission')
+            if self.touch_id != -1:
+                emit_node.inputs[1].default_value = 300
+            else:
+                emit_node.inputs[1].default_value = 1
     def update_player_color(self, context):
-        if self.player_material != None:
-            #print(self.player_material.node_tree.nodes.get('RGB'))
+
+        if self.is_npc:
+            rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
+            rgb_node.inputs[0].default_value = self.player_color
+        else:
             rgb_node = self.player_material.node_tree.nodes.get('Emission')
             rgb_node.inputs[0].default_value = self.player_color
     def update_move_distance(self,context):
@@ -47,7 +60,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
 
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     light_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
-    is_enemy : bpy.props.BoolProperty()
+    is_npc : bpy.props.BoolProperty()
     move_distance : bpy.props.FloatProperty(
         #name = "MOVE_DISTANCE",
         description = "Distance in Meter the Player can move in one Turn",
@@ -194,7 +207,7 @@ class DMProperties(bpy.types.PropertyGroup):
 
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
     hwnd_id : bpy.props.IntProperty()
-    touchwindow_active : bpy.props.BoolProperty( default=True)
+    touchwindow_active : bpy.props.BoolProperty()
 
 
 
@@ -220,7 +233,6 @@ def unregister():
         bpy.utils.unregister_class(blender_class) 
     
     del bpy.types.Scene.dm_property
-
     del bpy.types.Object.player_property
     del bpy.types.GreasePencil.map_property
     del bpy.types.GreasePencilLayers.floor_property

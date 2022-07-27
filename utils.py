@@ -133,7 +133,7 @@ def CreateMapMaterial(self, context,image):
     material_map.shadow_method = 'NONE'
     return material_map
 
-def CreatePlayerMaterial(self, context, color):
+def  CreatePlayerMaterial(self, context, color):
     material_player = bpy.data.materials.new(name="Player MATERIAL")
     material_player.use_nodes = True
     
@@ -147,6 +147,18 @@ def CreatePlayerMaterial(self, context, color):
     emit_node.inputs[0].default_value = color
     material_player.node_tree.links.new(emit_node.outputs[0], material_out.inputs[0])
 
+    material_player.shadow_method = 'NONE'
+    return material_player
+
+def  CreateNPCMaterial(self, context, color):
+    material_player = bpy.data.materials.new(name="NPC MATERIAL")
+    material_player.use_nodes = True
+    
+    principled_node = material_player.node_tree.nodes.get('Principled BSDF')
+
+    principled_node.inputs[0].default_value = color
+    principled_node.inputs[19].default_value = color
+    principled_node.inputs[20].default_value = 0
     material_player.shadow_method = 'NONE'
     return material_player
 
@@ -317,8 +329,8 @@ def sort_player_list(self,context):
         print()
         print()
 
-
-
+def update_collection_name(self, contex, collection):
+    collection.name = self.name
 def update_maps(self,context, collection):
     dm_property = context.scene.dm_property
 
@@ -390,7 +402,7 @@ def selectCharacter(self, context):
 def toggleDayNight(self, context):
     for char in self.characterlist:
         player = char.character.player_property
-        if player.is_enemy:
+        if player.is_npc:
             continue
         player.spot_day.hide_viewport = self.day_night
         player.point_day.hide_viewport = self.day_night

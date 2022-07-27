@@ -21,8 +21,8 @@ class DM_PT_SceneSetupPanel(bpy.types.Panel):
             col.operator("scene.setup", icon ="WORLD")
         else:
             col.prop(context.scene.unit_settings, 'system')
-            col.operator("scene.grid_scale")
-            col.prop(context.scene.tool_settings, "use_snap")
+            col.operator("scene.grid_scale", text="Set 5ft Grid")
+            #col.prop(context.scene.tool_settings, "use_snap")
 
 class DM_PT_CameraSetupPanel(bpy.types.Panel):
     bl_label = "Camera"
@@ -40,20 +40,21 @@ class DM_PT_CameraSetupPanel(bpy.types.Panel):
             if dm_property.camera is None:
                 col.operator("camera.add", icon ='OUTLINER_DATA_CAMERA')
             else:
-                col.operator("camera.remove", icon ='PANEL_CLOSE')
-                if dm_property.camera_zoom_toggle:
-                    col.operator("camera.togglezoom", icon ='ZOOM_OUT').scale = dm_property.camera_zoom_out
-                    col.prop(dm_property, "camera_zoom_in")
-                else:
-                    col.operator("camera.togglezoom", icon ='ZOOM_IN').scale = dm_property.camera_zoom_in
-                    col.prop(dm_property, "camera_zoom_out")
-                pan_row = col.row()
-                pan_row.operator("camera.pan", icon="VIEW_PAN",text ="Panning")
                 if dm_property.camera_pan_toggle:
-                    pan_row.label(text="Active")
+                    col.operator("camera.pan",text ="Panning active", icon="VIEW_PAN", emboss= not dm_property.camera_pan_toggle)
                 else:
-                    pan_row.label(text="Not Active")
+                    col.operator("camera.pan",text ="Panning", icon="VIEW_PAN", emboss= not dm_property.camera_pan_toggle)
                 col.operator("view3d.view_camera",icon='OUTLINER_DATA_CAMERA')
+                
+                pan_row = col.split(factor=0.2)
+                if dm_property.camera_zoom_toggle:
+                    pan_row.operator("camera.togglezoom", icon ='ZOOM_IN',text="").scale = dm_property.camera_zoom_out
+                    pan_row.prop(dm_property, "camera_zoom_in", text="Zoom")
+                else:
+                    pan_row.operator("camera.togglezoom", icon ='ZOOM_OUT',text="").scale = dm_property.camera_zoom_in
+                    pan_row.prop(dm_property, "camera_zoom_out", text="Zoom")
+                #pan_row.prop(dm_property,"camera_pan_toggle",text="Active")
+                col.operator("camera.remove", icon ='PANEL_CLOSE')
      
 class DM_PT_LightSetupPanel(bpy.types.Panel):
     bl_label = "Light"
@@ -67,7 +68,7 @@ class DM_PT_LightSetupPanel(bpy.types.Panel):
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
             col = layout.column()
-            col.prop(dm_property, 'day_night',text = "Day Night")
+            col.prop(dm_property, 'day_night',text = "Player can see without darkvision")
             # if dm_property.global_Sun != None:
             #     col.prop(dm_property.global_Sun, 'diffuse_factor',text = "Sun Light")
 
@@ -107,7 +108,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                 if bpy.context.object == char.character: 
                     player_property = char.character.player_property
                     layout.prop(player_property, "name")
-                    if player_property.is_enemy == False:
+                    if player_property.is_npc == False:
                         layout.prop(player_property, "darkvision", text="Darkvision")
                     list_row = layout.row()
                     if player_property.distance_circle.hide_get():
@@ -231,25 +232,46 @@ class DM_PT_AddSetupPanel(bpy.types.Panel):
                 menu_sort_layout2.operator("list.floor_op", text="", icon="TRIA_DOWN").menu_active = 5
 
 
-                if len(map.floorlist) > 0:
+class DM_PT_AddGroundPanel(bpy.types.Panel):
+    """Creates a Panel for all Player Settings"""
+    bl_label = "Add Background"
+    bl_idname = "PT_ui_add_ground"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'DM Tools'
+    bl_parent_id = '_PT_MapSetupPanel'
+
+    def draw(self, context):
+        layout = self.layout
+        dm_property = context.scene.dm_property
+        map = dm_property.maplist[dm_property.maplist_data_index]
+        if len(dm_property.maplist) > 0 and len(map.floorlist) > 0:
                     col = layout.column()
                     col.label(text="Add Map")
                     col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
                     col.operator("add.white_map_image", icon="MESH_GRID")
                     col.operator("add.grid", icon="MESH_GRID")
-
                     col.operator("mesh.gpencil_add", icon = "GREASEPENCIL")
                     col.operator("add.gpencil_to_wall", icon="OUTLINER_OB_GREASEPENCIL")
                     #col.operator("mesh.map_scale", icon="SETTINGS")    
+class DM_PT_AddWallsPanel(bpy.types.Panel):
+    """Creates a Panel for all Player Settings"""
+    bl_label = "Add Geometry and Light"
+    bl_idname = "PT_ui_addwalls"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'DM Tools'
+    bl_parent_id = '_PT_MapSetupPanel'
 
-
-                    col.label(text="Add Geometry")
+    def draw(self, context):
+        layout = self.layout
+        dm_property = context.scene.dm_property
+        map = dm_property.maplist[dm_property.maplist_data_index]
+        if len(dm_property.maplist) > 0 and len(map.floorlist) > 0:
+                    col = layout.column()
                     col.operator("mesh.geowall_add", icon="MOD_BUILD")
-                    col.operator("mesh.cave_add") 
                     col.operator("mesh.pillar_add",icon="MESH_CYLINDER") 
-                    col.label(text="Add Light")
-                    col.operator("light.torch_add",icon="LIGHT_POINT").reveal = False
-                    col.operator("light.torch_add",text = "Reveal map",icon="LIGHT_POINT").reveal = True
+                    col.operator("light.torch_add",icon="LIGHT_POINT").reveal = False   
 
 class DM_PT_WindowSetupPanel(bpy.types.Panel):
     bl_label = "Window"
@@ -325,7 +347,7 @@ class DM_UL_Floorlist(bpy.types.UIList):
         dm_property = context.scene.dm_property
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(factor=0.1)
+            split = layout.split(factor=0.2)
             if ma:
                 map = dm_property.maplist[dm_property.maplist_data_index]
                 try:
@@ -600,6 +622,8 @@ blender_classes = [
     DM_PT_PlayerListPanel,
     DM_PT_PlayerStatsPanel,
     DM_PT_AddSetupPanel,
+    DM_PT_AddGroundPanel,
+    DM_PT_AddWallsPanel,
     DM_PT_WindowSetupPanel,
     DM_UL_Playerlist_player,
     DM_UL_Maplist,
