@@ -27,7 +27,7 @@ from collections import namedtuple
 kivy_installed = False
 
 try:
-    from . touchtracer import register
+    from .touch import register
     print("Touchtracer inported")
     kivy_installed = True
 except ModuleNotFoundError as e:
@@ -839,6 +839,7 @@ Dependency = namedtuple("Dependency", ["module", "package", "name"])
 # of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
 # "import" statement.
 dependencies = (Dependency(module="kivy", package=None, name=None),
+                Dependency(module="pygame", package=None, name=None)
 )
 
 dependencies_installed = False
@@ -1061,7 +1062,7 @@ def register():
 
     if kivy_installed == True:
         print("TOUCHTRACER REGISTER")
-        touchtracer.register()
+        touch.register()
     import_images.register()
     properties.register()
     ui.register()
@@ -1081,7 +1082,7 @@ def unregister():
 
 
     if kivy_installed == True:
-        touchtracer.unregister()      
+        touch.unregister()      
     properties.unregister()
     ui.unregister()
     import_images.unregister()
