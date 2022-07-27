@@ -17,11 +17,12 @@ class DM_PT_SceneSetupPanel(bpy.types.Panel):
         dm_property = context.scene.dm_property
         
         col = layout.column()
-       
-        col.operator("scene.setup", icon ="WORLD")
-        col.prop(context.scene.unit_settings, 'system')
-        col.operator("scene.grid_scale")
-        col.prop(context.scene.tool_settings, "use_snap")
+        if not dm_property.is_setup:
+            col.operator("scene.setup", icon ="WORLD")
+        else:
+            col.prop(context.scene.unit_settings, 'system')
+            col.operator("scene.grid_scale")
+            col.prop(context.scene.tool_settings, "use_snap")
 
 class DM_PT_CameraSetupPanel(bpy.types.Panel):
     bl_label = "Camera"
@@ -37,17 +38,17 @@ class DM_PT_CameraSetupPanel(bpy.types.Panel):
             col = layout.column()
 
             if dm_property.camera is None:
-                col.operator("camera.dnd_add", icon ='OUTLINER_DATA_CAMERA')
+                col.operator("camera.add", icon ='OUTLINER_DATA_CAMERA')
             else:
-                col.operator("camera.dnd_remove", icon ='PANEL_CLOSE')
+                col.operator("camera.remove", icon ='PANEL_CLOSE')
                 if dm_property.camera_zoom_toggle:
-                    col.operator("camera.dnd_zoom", icon ='ZOOM_OUT').scale = dm_property.camera_zoom_out
+                    col.operator("camera.togglezoom", icon ='ZOOM_OUT').scale = dm_property.camera_zoom_out
                     col.prop(dm_property, "camera_zoom_in")
                 else:
-                    col.operator("camera.dnd_zoom", icon ='ZOOM_IN').scale = dm_property.camera_zoom_in
+                    col.operator("camera.togglezoom", icon ='ZOOM_IN').scale = dm_property.camera_zoom_in
                     col.prop(dm_property, "camera_zoom_out")
                 pan_row = col.row()
-                pan_row.operator("camera.dnd_pan", icon="VIEW_PAN",text ="Panning")
+                pan_row.operator("camera.pan", icon="VIEW_PAN",text ="Panning")
                 if dm_property.camera_pan_toggle:
                     pan_row.label(text="Active")
                 else:
@@ -89,7 +90,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
             menu_sort_layout_column = list_row_layout.column()
             menu_sort_layout = menu_sort_layout_column.column(align=True)
             menu_sort_layout.operator("player.update", text="", icon="FILE_REFRESH")
-            menu_sort_layout.operator("player.dnd_add", text="", icon="ADD")
+            menu_sort_layout.operator("player.add", text="", icon="ADD")
             #menu_sort_layout.operator("list.list_o", text="", icon="ADD").menu_active = 6
             menu_sort_layout.operator("list.list_op", text="", icon="REMOVE").menu_active = 7
             menu_sort_layout2 = menu_sort_layout_column.column(align=True)
@@ -263,7 +264,7 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
         if dm_property.is_setup:
             col = layout.column()
 
-            col.operator("window.dnd_new", icon ='WINDOW')
+            col.operator("window.new", icon ='WINDOW')
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
             col.operator("touch.use_touch")

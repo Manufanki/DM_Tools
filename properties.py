@@ -208,9 +208,20 @@ blender_classes = [
 def register():
     for blender_class in blender_classes:
         bpy.utils.register_class(blender_class)
+    
+    bpy.types.Scene.dm_property = bpy.props.PointerProperty(type = DMProperties)    
+    bpy.types.Object.player_property = bpy.props.PointerProperty(type = PlayerProperties)
+    bpy.types.GreasePencil.map_property = bpy.props.PointerProperty(type = MapPointerProperties)
+    bpy.types.GreasePencilLayers.floor_property = bpy.props.PointerProperty(type = FloorPointerProperties)
 
 
 def unregister():
     for blender_class in blender_classes:
         bpy.utils.unregister_class(blender_class) 
+    
+    del bpy.types.Scene.dm_property
+
+    del bpy.types.Object.player_property
+    del bpy.types.GreasePencil.map_property
+    del bpy.types.GreasePencilLayers.floor_property
 #endregion Properties

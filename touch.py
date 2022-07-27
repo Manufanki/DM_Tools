@@ -127,7 +127,7 @@ def update_player_pos(context,id,touch_pos):
 
 
 class TOUCH_OT_move(bpy.types.Operator):
-    "Add Map Collection to the Scene"
+    "Creates a Update loop and checks for Touch input"
     bl_idname = "touch.move"
     bl_label = "move players"
     
