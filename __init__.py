@@ -24,16 +24,16 @@ import subprocess
 import importlib
 from collections import namedtuple
 
-kivy_installed = False
+pygame_installed = False
 
 try:
     from .touch import register
-    print("Touchtracer inported")
-    kivy_installed = True
+    print("Touch is inported")
+    pygame_installed = True
 except ModuleNotFoundError as e:
     print(e)
-    kivy_installed = False
-    print("Kivi is not installed")
+    pygame_installed = False
+    print("pygame is not installed")
 from . properties import *
 from . utils import *
 from . ui import *
@@ -838,8 +838,8 @@ Dependency = namedtuple("Dependency", ["module", "package", "name"])
 # set to None, if they are equal to the module name. See import_module and ensure_and_import_module for the explanation
 # of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
 # "import" statement.
-dependencies = (Dependency(module="kivy", package=None, name=None),
-                Dependency(module="pygame", package=None, name=None)
+dependencies = (Dependency(module="pygame", package=None, name=None),
+                
 )
 
 dependencies_installed = False
@@ -923,12 +923,12 @@ def install_and_import_module(module_name, package_name=None, global_name=None):
 class TOUCH_OT_use_touch_operator(bpy.types.Operator):
     bl_idname = "touch.use_touch"
     bl_label = "Use Touchscreen"
-    bl_description = "This operator tries to use kivy."
+    bl_description = "This operator uses starts the pygame modal operator."
     bl_options = {"REGISTER"}
 
     @classmethod
     def poll(self, context):
-        if context.scene.dm_property.screen is not None and kivy_installed:
+        if context.scene.dm_property.screen is not None and pygame_installed:
             return True
         else:
             return False 
@@ -1060,7 +1060,7 @@ def register():
         print(e)
         #return
 
-    if kivy_installed == True:
+    if pygame_installed == True:
         print("TOUCHTRACER REGISTER")
         touch.register()
     import_images.register()
@@ -1081,7 +1081,7 @@ def register():
 def unregister():
 
 
-    if kivy_installed == True:
+    if pygame_installed == True:
         touch.unregister()      
     properties.unregister()
     ui.unregister()
