@@ -18,6 +18,7 @@ from bl_ui.properties_grease_pencil_common import (
 )
 
 from bpy_extras.io_utils import ImportHelper
+from ctypes import wintypes, windll
 import os
 import sys
 import subprocess
@@ -793,6 +794,7 @@ class Window_new(bpy.types.Operator):
     bl_label = "New Window"
     def execute(self, context):
         bpy.ops.wm.window_new()
+        context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
         context.scene.dm_property.screen = bpy.context.screen
         #context.scene.touch_manager.rv3d = bpy.context.region_data
         bpy.context.area.ui_type = 'VIEW_3D'
@@ -922,7 +924,7 @@ def install_and_import_module(module_name, package_name=None, global_name=None):
 
 class TOUCH_OT_use_touch_operator(bpy.types.Operator):
     bl_idname = "touch.use_touch"
-    bl_label = "Use Touchscreen"
+    bl_label = "New Touchscreen Window"
     bl_description = "This operator uses starts the pygame modal operator."
     bl_options = {"REGISTER"}
 
@@ -934,6 +936,7 @@ class TOUCH_OT_use_touch_operator(bpy.types.Operator):
             return False 
 
     def execute(self, context):
+        bpy.ops.window.dnd_new()
         bpy.ops.touch.move('INVOKE_DEFAULT')
         return {"FINISHED"}
 

@@ -20,43 +20,12 @@ from random import randint
 # This makes the touchpad be usable as a multi touch device.
 os.environ['SDL_MOUSE_TOUCH_EVENTS'] = '1'
 
-
-def adjust_windows():
-
-    # windows = []
-    # win32gui.EnumWindows(lambda hwnd, resultList: resultList.append(hwnd), windows)
-
-
-    # for win in windows:
-    #     if win32gui.GetWindowText(win).startswith('Blender '):
-    #         win32gui.SetForegroundWindow(win)
-
-    window = win32gui.FindWindow(None, "Touch")
-    alpha = 100
-    
-    if window == 0:
-        return
-
-    x,y,w,h = get_window_rect(window)
-
-    win32gui.SetWindowLong (window, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (window, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
-    winxpgui.SetLayeredWindowAttributes(window, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
-    win32gui.SetWindowPos(window, win32con.HWND_TOP, x, y, w, h, win32con.SWP_NOACTIVATE) 
-
-    
-
-
-
-
 def get_window_rect(hwnd):
     rect = win32gui.GetWindowRect(hwnd)
     x = rect[0]
     y = rect[1]
     w = rect[2] - x
     h = rect[3] - y
-    # print("Window %s:" % win32gui.GetWindowText(hwnd))
-    # print("\tLocation: (%d, %d)" % (x, y))
-    # print("\t    Size: (%d, %d)" % (w, h))
     return x,y,w,h
 
 
@@ -147,7 +116,10 @@ def update_player_pos(context,id,touch_pos):
                 return  
         for char in dm_property.characterlist:
             if char.character.player_property.touch_id == id:
-                
+                distance = np.linalg.norm(location-char.character.location)
+                if distance > 5:
+                    char.character.player_property.touch_id = -1
+                    return
                 dir = location - char.character.location 
                 forward = Vector((0,1,0))
                 char.character.rotation_euler[2] = angle_between(forward, dir)
@@ -160,7 +132,6 @@ class TOUCH_OT_move(bpy.types.Operator):
     bl_label = "move players"
     
     _timer = None
-    circles = {}
 
     def modal(self, context, event):
 
@@ -172,49 +143,47 @@ class TOUCH_OT_move(bpy.types.Operator):
                 region = reg
 
         
-        pg.init()
-
-        # Different colors for different fingers.
-        colors = [
-            'red', 'green', 'blue', 'cyan', 'magenta',
-            'yellow', 'black', 'orange', 'purple', 'violet'
-        ]
-        available_colors = colors[:] + colors[:] # two copies for people with 12 fingers.
-        # keyed by finger_id, and having dict as a value like this:
-        # {
-        #     'x': 20,
-        #     'y': 20,
-        #     'color': 'red',
-        # }
-    
+        pg.init()    
         width, height = (region.width, region.height)
-        screen = pg.display.set_mode((width, height))
-        #clock = pg.time.Clock()
+        screen = pg.display.set_mode((width, height),pg.NOFRAME)
+
+        hwnd_touch = pg.display.get_wm_info()["window"]
+        hwnd_blender = dm_property.hwnd_id
+        alpha = 100
+        if dm_property.touchwindow_active:
+            alpha = 1 
+        else:
+            alpha = 0 # if pygame window is complete transparent it will not recieve touch input 
+
+        x,y,w,h = get_window_rect(hwnd_touch)
+        try:
+            x1,y1,w1,h1 = get_window_rect(hwnd_blender)
+        except:
+            pg.quit()
+            self.cancel(context)
+            return {'CANCELLED'}
+        
+        y1 = y1-(h -h1)
+
+
+        win32gui.SetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
+        winxpgui.SetLayeredWindowAttributes(hwnd_touch, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
+        win32gui.SetWindowPos(hwnd_touch, win32con.HWND_TOP, x1, y1, w, h, win32con.SWP_NOACTIVATE) 
+
         caption = 'Touch'
         pg.display.set_caption(caption)
-        adjust_windows()
-        # we hide the mouse cursor and keep it inside the window.
         
-        #print("INOUT GRABBED: ",pg.event.get_grab())
         pg.event.set_grab(False)
         pg.mouse.set_visible(True)
 
         if event.type == 'TIMER':
             for e in pg.event.get():
-                if e.type == pg.KEYDOWN:
-                    if e.key == pg.K_s:
-                        print("KEY s")
                 # We look for finger down, finger motion, and then finger up.
                 if e.type == pg.FINGERDOWN:
 
                     touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
                     set_touch_id(bpy.context,e.finger_id, touch_pos)
                     print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
-                    self.circles[e.finger_id] = {
-                        'color': available_colors.pop(),
-                        'x': int(width * e.x),  # x and y are 0.0 to 1.0 in touch space.
-                        'y': int(height * e.y), #     we translate to the screen pixels.
-                    }
                 elif e.type == pg.FINGERMOTION:
                     touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
                     for char in bpy.context.scene.dm_property.characterlist:
@@ -222,27 +191,22 @@ class TOUCH_OT_move(bpy.types.Operator):
                             update_player_pos(bpy.context,e.finger_id, touch_pos)
                             print(touch_pos)
                     print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
-                    self.circles[e.finger_id].update({
-                        'x': int(width * e.x),  # x and y are 0.0 to 1.0 in touch space.
-                        'y': int(height * e.y), #     we translate to the screen pixels.
-                    })
                 elif e.type == pg.FINGERUP:
                     for char in dm_property.characterlist:
                         if char.character.player_property.touch_id == e.finger_id:
                             char.character.player_property.touch_id = -1
-                    available_colors.append(self.circles[e.finger_id]['color'])
-                    del self.circles[e.finger_id]
+
             pg.display.flip()
 
-        if event.type in {'ESC'}:
-            pg.quit()
-            self.cancel(context)
-            return {'CANCELLED'}
+        # if event.type in {'ESC'}:
+        #     pg.quit()
+        #     self.cancel(context)
+        #     return {'CANCELLED'}
         return {'PASS_THROUGH'}
 
     def execute(self, context):
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.1, window=context.window)
+        self._timer = wm.event_timer_add(0.01, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 

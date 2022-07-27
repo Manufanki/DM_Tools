@@ -67,8 +67,8 @@ class DM_PT_LightSetupPanel(bpy.types.Panel):
         if dm_property.is_setup:
             col = layout.column()
             col.prop(dm_property, 'day_night',text = "Day Night")
-            if dm_property.global_Sun != None:
-                col.prop(dm_property.global_Sun, 'diffuse_factor',text = "Sun Light")
+            # if dm_property.global_Sun != None:
+            #     col.prop(dm_property.global_Sun, 'diffuse_factor',text = "Sun Light")
 
 class DM_PT_PlayerListPanel(bpy.types.Panel):
     """Creates a Panel for all Player Settings"""
@@ -267,8 +267,7 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
             col.operator("touch.use_touch")
-            col.prop(dm_property, "adjust_touchwindow", text="Adjust touchwindow")
-            col.prop(dm_property, "hide_touchwindow", text="Hide touchwindow")
+            col.prop(dm_property, "touchwindow_active", text="Touch Active")
 
 #region lists
 
@@ -280,7 +279,7 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
         ma = slot.name
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(factor=0.1)
+            split = layout.split(factor=0.3)
             row = layout.row(align=True)
             if ma:
                 split.prop(slot, "player_color", text ="")

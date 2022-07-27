@@ -193,8 +193,8 @@ class DMProperties(bpy.types.PropertyGroup):
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
-    adjust_touchwindow : bpy.props.BoolProperty()
-    hide_touchwindow : bpy.props.BoolProperty()
+    hwnd_id : bpy.props.IntProperty()
+    touchwindow_active : bpy.props.BoolProperty( default=True)
 
 
 
