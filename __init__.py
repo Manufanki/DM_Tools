@@ -45,7 +45,8 @@ from . import_images import *
 #importlib.reload(this)
 importlib.reload(utils)
 importlib.reload(properties)
-importlib.reload(touch)
+if pygame_installed:
+    importlib.reload(touch)
 importlib.reload(main_ops)
 importlib.reload(import_images)
 importlib.reload(ui)
