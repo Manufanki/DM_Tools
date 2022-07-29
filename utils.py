@@ -399,6 +399,32 @@ def selectCharacter(self, context):
         bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].character
 
 
+
+def get_rayhit_loc(self, context,reg,touch_pos):
+        touch_pos = Vector((touch_pos[0], touch_pos[1]))
+        dm_property = context.scene.dm_property
+
+        if reg.type == 'WINDOW':
+            region = reg
+            rv3d = reg.data
+        else:
+            return
+
+        view_vector_mouse = view3d_utils.region_2d_to_vector_3d(region, rv3d,touch_pos)# self.touch_pos)
+        ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
+        direction = ray_origin_mouse + (view_vector_mouse * 1000)
+        direction =  direction - ray_origin_mouse
+        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
+        
+        if result is None:
+            return
+
+        for char in dm_property.characterlist:
+            if obj == char.character:
+                return
+        return location
+
+
 def toggleDayNight(self, context):
     for char in self.characterlist:
         player = char.character.player_property

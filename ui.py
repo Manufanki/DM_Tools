@@ -20,6 +20,7 @@ class DM_PT_SceneSetupPanel(bpy.types.Panel):
         if not dm_property.is_setup:
             col.operator("scene.setup", icon ="WORLD")
         else:
+            col.operator("scene.setup", icon ="WORLD")
             col.prop(context.scene.unit_settings, 'system')
             col.operator("scene.grid_scale", text="Set 5ft Grid")
             #col.prop(context.scene.tool_settings, "use_snap")
@@ -111,7 +112,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                     if player_property.is_npc == False:
                         layout.prop(player_property, "darkvision", text="Darkvision")
                     list_row = layout.row()
-                    if player_property.distance_circle.hide_get():
+                    if player_property.distance_sphere.hide_get():
                         list_row.operator("player.distance_toggle", text="", icon="HIDE_ON")
                     else:
                         list_row.operator("player.distance_toggle",text ="",  icon="HIDE_OFF")
@@ -149,6 +150,7 @@ class DM_PT_PlayerStatsPanel(bpy.types.Panel):
             if bpy.context.object == char.character: 
                 player_property = char.character.player_property
                 list2_col = layout.column()
+                list2_col.prop(player_property,"player_height")
                 list2_col.prop(player_property,"health_points")
                 list2_col.prop(player_property,"armor_class")
                 list2_col.prop(player_property,"attack_bonus")
@@ -244,8 +246,10 @@ class DM_PT_AddGroundPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         dm_property = context.scene.dm_property
-        map = dm_property.maplist[dm_property.maplist_data_index]
-        if len(dm_property.maplist) > 0 and len(map.floorlist) > 0:
+       
+        if len(dm_property.maplist) > 0:
+            map = dm_property.maplist[dm_property.maplist_data_index]
+            if len(map.floorlist) > 0:
                     col = layout.column()
                     col.label(text="Add Map")
                     col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
@@ -266,8 +270,9 @@ class DM_PT_AddWallsPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         dm_property = context.scene.dm_property
-        map = dm_property.maplist[dm_property.maplist_data_index]
-        if len(dm_property.maplist) > 0 and len(map.floorlist) > 0:
+        if len(dm_property.maplist):
+            map = dm_property.maplist[dm_property.maplist_data_index]
+            if len(map.floorlist) > 0:
                     col = layout.column()
                     col.operator("mesh.geowall_add", icon="MOD_BUILD")
                     col.operator("mesh.pillar_add",icon="MESH_CYLINDER") 
@@ -419,7 +424,7 @@ class PLAYER_List_Button(bpy.types.Operator):
         if self.menu_active == 7:
             if index >= 0 and index < len(char_list):
                 player = char_list[index].character
-                player.player_property.distance_circle.parent = player
+                player.player_property.distance_sphere.parent = player
                 try:
                     player.player_property.player_coll.children.unlink(player.player_property.light_coll)
                     bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)

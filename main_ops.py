@@ -38,14 +38,14 @@ class PLAYER_Distance_Button(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        if context.object.player_property.distance_circle.hide_get():
-            context.object.player_property.distance_circle.parent = None
-            context.object.player_property.distance_circle.hide_set(False)
+        if context.object.player_property.distance_sphere.hide_get():
+            context.object.player_property.distance_sphere.parent = None
+            context.object.player_property.distance_sphere.hide_set(False)
         else:
-            context.object.player_property.distance_circle.parent = context.object
-            context.object.player_property.distance_circle.hide_set(True)
+            context.object.player_property.distance_sphere.parent = context.object
+            context.object.player_property.distance_sphere.hide_set(True)
         loc = context.object.location
-        context.object.player_property.distance_circle.location = (loc.x, loc.y, 3)
+        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z)
         return {"FINISHED"} 
 
 class PLAYER_Torch_Button(bpy.types.Operator):
@@ -78,6 +78,10 @@ class PLAYER_add(bpy.types.Operator):
     def execute(self, context):
         dm_prop = bpy.context.scene.dm_property
         
+
+        location = get_rayhit_loc(self, context,context.region, (context.region.width /2, context.region.height /2))
+
+
         rgb = colorsys.hsv_to_rgb(random.random(),1,1)
         tmp_player_color = (rgb[0],rgb[1],rgb[2],1)
 
@@ -86,7 +90,7 @@ class PLAYER_add(bpy.types.Operator):
             player_height = 0.5
             rgb = colorsys.hsv_to_rgb(random.uniform(0, 1),1,.05)
             tmp_player_color = (rgb[0],rgb[1],rgb[2],1)
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=(0, 0, 0.0), scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=location, scale=(1, 1, 1))
         player = bpy.context.object
         component_list = []
         light_list = []
@@ -97,6 +101,7 @@ class PLAYER_add(bpy.types.Operator):
         player_property = player.player_property
         player.data.vertices[0].co.y += 0.3
         player.data.vertices[1].co.y += 0.3
+        player_property.player = player
 
         player_pointer = dm_prop.characterlist.add()
         player_pointer.character = player
@@ -112,20 +117,20 @@ class PLAYER_add(bpy.types.Operator):
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
         
-        bpy.ops.mesh.primitive_cylinder_add(radius= 1, depth=2, enter_editmode=False, align='WORLD', location=(0, 0, 1), scale=(1, 1, 1))
-        distance_circel = bpy.context.object
-        distance_circel.name = "Distance Circle"
-        distance_circel.parent = player
-        distance_circel.lock_location = (False, False, True)
+        bpy.ops.mesh.primitive_uv_sphere_add(radius= 1, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        distance_sphere = bpy.context.object
+        distance_sphere.name = "Distance Sphere"
+        distance_sphere.parent = player
+        distance_sphere.lock_location = (False, False, True)
 
-        player_property.distance_circle = distance_circel
+        player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
-        distance_circel.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
-        component_list.append(distance_circel)
+        distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
+        component_list.append(distance_sphere)
 
         
-        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
         spot = bpy.context.object
         spot.name = "Player Vision Day"
         spot.parent = player
@@ -137,7 +142,7 @@ class PLAYER_add(bpy.types.Operator):
         component_list.append(spot)
         light_list.append(spot)
 
-        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0,  player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
         point = bpy.context.object
         point.name = "Player Vision Day Point"
         point.parent = player
@@ -148,7 +153,7 @@ class PLAYER_add(bpy.types.Operator):
         light_list.append(point)
 
 
-        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0,  player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
         spotDark = bpy.context.object
         spotDark.name = "Player Vision Dark"
         spotDark.parent = player
@@ -163,7 +168,7 @@ class PLAYER_add(bpy.types.Operator):
         component_list.append(spotDark)
         light_list.append(spotDark)
 
-        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0,  player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
         pointDark = bpy.context.object
         pointDark.name = "Player Vision Dark Point"
         pointDark.parent = player
@@ -176,7 +181,7 @@ class PLAYER_add(bpy.types.Operator):
         light_list.append(pointDark)
         
         
-        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 0), rotation=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.light_add(type='POINT', align='WORLD', location=(0, 0, 1), rotation=(0, 0, 0), scale=(1, 1, 1))
         torch = bpy.context.object
         torch.name = "Torch"
         torch.parent = player
@@ -226,8 +231,8 @@ class PLAYER_add(bpy.types.Operator):
             player_property.point_day = point
             player_property.spot_night = spotDark
             player_property.point_night = pointDark
-        distance_circel.hide_select = True
-        distance_circel.hide_set(True)
+        distance_sphere.hide_select = True
+        distance_sphere.hide_set(True)
         bpy.context.view_layer.objects.active = player
         player.select_set(True)
         return {'FINISHED'}
@@ -401,8 +406,7 @@ class SCENE_Setup(bpy.types.Operator):
         bpy.context.scene.eevee.bloom_radius = 1.5
 
         bpy.context.space_data.shading.type = 'MATERIAL'
-
-
+        
         bpy.data.worlds["World"].node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
         dm_property.is_setup = True
 

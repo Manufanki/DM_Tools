@@ -35,8 +35,13 @@ class PlayerProperties(bpy.types.PropertyGroup):
                 emit_node.inputs[1].default_value = 300
             else:
                 emit_node.inputs[1].default_value = 1
+    def update_player_height(self, context):
+        self.spot_day.location[2] = self.player.location[2]+ self.player_height
+        self.point_day.location[2] = self.player.location[2]+ self.player_height
+        self.spot_night.location[2] = self.player.location[2]+ self.player_height
+        self.point_night.location[2] = self.player.location[2]+  self.player_height
+    
     def update_player_color(self, context):
-
         if self.is_npc:
             rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
             rgb_node.inputs[0].default_value = self.player_color
@@ -48,7 +53,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         unit_dist = self.move_distance*2
         distance = unit_to_bu(unit_dist,unitinfo[1])
         distance += 1.5
-        self.distance_circle.dimensions = (distance,distance,self.distance_circle.dimensions.z)
+        self.distance_sphere.dimensions = (distance, distance, distance)
 
     def update_darkvision(self,context):
         unitinfo = GetCurrentUnits()
@@ -75,7 +80,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         update=update_touch_active
     )
 
-    distance_circle : bpy.props.PointerProperty(type=bpy.types.Object)
+    distance_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
     darkvision : bpy.props.FloatProperty(
         #name = "MOVE_DISTANCE",
@@ -100,6 +105,14 @@ class PlayerProperties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         update=update_player_color,  # some sort of connected update method?
+    )
+    player_height : bpy.props.FloatProperty(
+        name="player_height",
+        description="Player height in meter",
+        min=0,
+        max=2,
+        default= 1,
+        update=update_player_height
     )
     list_index : bpy.props.IntProperty(
     name="index",
