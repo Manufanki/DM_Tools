@@ -5,8 +5,7 @@ from . utils import *
 class FloorPointerProperties(bpy.types.PropertyGroup):
     floor : bpy.props.PointerProperty(type=bpy.types.Collection)
     name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.floor))
-
-
+    annotation : bpy.props.PointerProperty(type=bpy.types.GreasePencil)
 class MapPointerProperties(bpy.types.PropertyGroup):
     map : bpy.props.PointerProperty(type=bpy.types.Collection)
     name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.map))
@@ -221,7 +220,10 @@ class DMProperties(bpy.types.PropertyGroup):
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
     hwnd_id : bpy.props.IntProperty()
     touchwindow_active : bpy.props.BoolProperty()
-
+    touch_active : bpy.props.BoolProperty()
+    touch_update_rate : bpy.props.FloatProperty(default=60,
+    min= 1,
+    max= 144)
 
 
 blender_classes = [

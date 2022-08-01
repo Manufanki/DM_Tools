@@ -289,6 +289,8 @@ class MAP_add(bpy.types.Operator):
         collection_pointer.name = collection.name
 
         dm_prop.maplist_data_index = len(dm_prop.maplist)-1
+
+        bpy.ops.floor.add()
         
         return {'FINISHED'}
 class MAP_update(bpy.types.Operator):
@@ -333,12 +335,18 @@ class FLOOR_add(bpy.types.Operator):
         collection_pointer = map.floorlist.add()
         collection_pointer.floor = collection
         collection_pointer.name = collection.name
+        
+
+        layer_collection = bpy.context.view_layer.layer_collection
+        layerColl = recurLayerCollection(layer_collection, collection_pointer.name)
+        bpy.context.view_layer.active_layer_collection = layerColl
+
 
         gpl = map.annotation.layers.new(name = collection.name)
         gpl.color = (1,1,1)
         map.annotation.layers.active = gpl
-       
-        collection_pointer.annotation = gpl
+        #collection_pointer.floor.annotation = gpl
+        collection_pointer.annotation = map.annotation
         
         return {'FINISHED'}
 class SCENE_Grid_Setup(bpy.types.Operator):
@@ -791,10 +799,14 @@ class Window_new(bpy.types.Operator):
     """Bla """
     bl_idname = "window.new"
     bl_label = "New Window"
+
+    touch_window : bpy.props.BoolProperty()
+
     def execute(self, context):
         bpy.ops.wm.window_new()
-        context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
-        context.scene.dm_property.screen = bpy.context.screen
+        if self.touch_window:
+            context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
+            context.scene.dm_property.screen = bpy.context.screen
         #context.scene.touch_manager.rv3d = bpy.context.region_data
         bpy.context.area.ui_type = 'VIEW_3D'
         bpy.context.space_data.shading.type = 'RENDERED'
@@ -846,7 +858,8 @@ class TOUCH_OT_use_touch_operator(bpy.types.Operator):
             return False 
 
     def execute(self, context):
-        bpy.ops.window.new()
+        if not context.scene.dm_property.touch_active:
+            bpy.ops.window.new(touch_window = True)
         bpy.ops.touch.move('INVOKE_DEFAULT')
         return {"FINISHED"}
 

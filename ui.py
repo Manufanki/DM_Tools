@@ -294,8 +294,15 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("window.new", icon ='WINDOW')
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
-            col.operator("touch.use_touch")
-            col.prop(dm_property, "touchwindow_active", text="Touch Active")
+            if dm_property.touch_active:
+                col.prop(dm_property, "touchwindow_active", text="Activate Touch")
+                col.operator("touch.use_touch", text="Close Touch")
+            else:
+                col.prop(dm_property, "touch_update_rate", text="Touch FPS:")
+                col.operator("touch.use_touch")
+            
+            
+
 
 #region lists
 

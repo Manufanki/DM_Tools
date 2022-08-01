@@ -330,6 +330,13 @@ def sort_player_list(self,context):
         print()
 
 def update_collection_name(self, contex, collection):
+    try:
+        self.annotation.name = self.name
+    except:
+        try:
+            self.annotation.layers[collection.name].name = self.name
+        except Exception as e:
+            print(e)
     collection.name = self.name
 def update_maps(self,context, collection):
     dm_property = context.scene.dm_property
@@ -362,7 +369,7 @@ def update_maps(self,context, collection):
             floor_pointer = map_pointer.floorlist.add()
             floor_pointer.floor = floor
             floor_pointer.name = floor.name
-
+            floor_pointer.annotation = map_pointer.annotation
             try:
                 map_pointer.annotation.layers[floor.name]
             except:
@@ -414,16 +421,26 @@ def get_rayhit_loc(self, context,reg,touch_pos):
         ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
         direction = ray_origin_mouse + (view_vector_mouse * 1000)
         direction =  direction - ray_origin_mouse
-        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
+        for char in dm_property.characterlist:
+            char.character.hide_viewport = True
         
+        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
+        
+        for char in dm_property.characterlist:
+            char.character.hide_viewport = False
+            
         if result is None:
             return
-
-        for char in dm_property.characterlist:
-            if obj == char.character:
-                return
         return location
 
+def recurLayerCollection(layerColl, collName):
+    found = None
+    if (layerColl.name == collName):
+        return layerColl
+    for layer in layerColl.children:
+        found = recurLayerCollection(layer, collName)
+        if found:
+            return found
 
 def toggleDayNight(self, context):
     for char in self.characterlist:
@@ -456,11 +473,15 @@ def selectMap(self, context):
 
 def selectFloor(self, context):
     dm_property = context.scene.dm_property
-
+    #print("SELECT FLOOR")
     if self.floorlist_data_index != -1:
         for item in self.floorlist:
             item.floor.hide_viewport = True
         self.floorlist[self.floorlist_data_index].floor.hide_viewport = False
+
+        layer_collection = bpy.context.view_layer.layer_collection
+        layerColl = recurLayerCollection(layer_collection, self.floorlist[self.floorlist_data_index].floor.name)
+        bpy.context.view_layer.active_layer_collection = layerColl
         map = dm_property.maplist[dm_property.maplist_data_index]
 
         for layer in map.annotation.layers:

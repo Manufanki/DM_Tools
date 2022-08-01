@@ -105,21 +105,24 @@ def update_player_pos(context,id,touch_pos):
         ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
         direction = ray_origin_mouse + (view_vector_mouse * 1000)
         direction =  direction - ray_origin_mouse
-        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
         
+        for char in dm_property.characterlist:
+            char.character.hide_viewport = True
+        
+        result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
+        
+        for char in dm_property.characterlist:
+            char.character.hide_viewport = False
         
         if result is None or obj is None:
             return
 
         for char in dm_property.characterlist:
-            if obj == char.character:
-                return  
-        for char in dm_property.characterlist:
             if char.character.player_property.touch_id == id:
                 distance = np.linalg.norm(location-char.character.location)
-                if distance > 5:
-                    char.character.player_property.touch_id = -1
-                    return
+                # if distance > 5:
+                #     char.character.player_property.touch_id = -1
+                #     return
                 dir = location - char.character.location 
                 forward = Vector((0,1,0))
                 char.character.rotation_euler[2] = angle_between(forward, dir)
@@ -134,8 +137,17 @@ class TOUCH_OT_move(bpy.types.Operator):
     _timer = None
 
     def modal(self, context, event):
-
+        
         dm_property = bpy.context.scene.dm_property
+        if context.scene.dm_property.touch_active == False:
+            try:
+                win32gui.PostMessage(dm_property.hwnd_id,win32con.WM_CLOSE,0,0)
+            except Exception as e:
+                print(e)
+            print("EXIT TOUCH BY Property")
+            pg.quit()
+            self.cancel(context)
+            return {'CANCELLED'}
         area =  dm_property.screen.areas[0]
         region = None
         for reg in area.regions:
@@ -159,6 +171,8 @@ class TOUCH_OT_move(bpy.types.Operator):
         try:
             x1,y1,w1,h1 = get_window_rect(hwnd_blender)
         except:
+            context.scene.dm_property.touch_active = False
+            print("EXIT TOUCH BY Window Closed")
             pg.quit()
             self.cancel(context)
             return {'CANCELLED'}
@@ -196,16 +210,12 @@ class TOUCH_OT_move(bpy.types.Operator):
                             char.character.player_property.touch_id = -1
 
             pg.display.flip()
-
-        # if event.type in {'ESC'}:
-        #     pg.quit()
-        #     self.cancel(context)
-        #     return {'CANCELLED'}
         return {'PASS_THROUGH'}
 
     def execute(self, context):
+        context.scene.dm_property.touch_active = not context.scene.dm_property.touch_active
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.01, window=context.window)
+        self._timer = wm.event_timer_add(1/context.scene.dm_property.touch_update_rate, window=context.window)
         wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
