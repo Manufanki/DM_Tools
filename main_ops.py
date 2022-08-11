@@ -21,7 +21,7 @@ try:
 except ModuleNotFoundError as e:
     print(e)
     pygame_installed = False
-    print("pygame is not installed")
+    #print("pygame is not installed")
 from .properties import *
 from .utils import *
 from .ui import *
@@ -37,7 +37,16 @@ class PLAYER_Distance_Button(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
+    @classmethod
+    def poll(cls, context):
+        if context.object is None:
+            return False
+        else:
+            return True
     def execute(self, context):
+
+        if context.object is None:
+            return {"FINISHED"} 
         if context.object.player_property.distance_sphere.hide_get():
             context.object.player_property.distance_sphere.parent = None
             context.object.player_property.distance_sphere.hide_set(False)

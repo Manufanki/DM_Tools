@@ -5,6 +5,7 @@ import numpy as np
 from bpy_extras import view3d_utils
 from mathutils import Vector
 
+
 import win32gui
 import win32con
 import win32api
@@ -63,8 +64,17 @@ def set_touch_id( context,id,touch_pos):
         ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
         direction = ray_origin_mouse + (view_vector_mouse * 1000)
         direction =  direction - ray_origin_mouse
+
+        for char in dm_property.characterlist:
+            char.character.player_property.distance_sphere.hide_viewport = True 
+
+
         result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph, ray_origin_mouse, direction)
         
+        for char in dm_property.characterlist:
+            char.character.player_property.distance_sphere.hide_viewport = False
+
+
         if result is None:
             return
         dm_property = context.scene.dm_property
@@ -108,11 +118,13 @@ def update_player_pos(context,id,touch_pos):
         
         for char in dm_property.characterlist:
             char.character.hide_viewport = True
+            char.character.player_property.distance_sphere.hide_viewport = True 
         
         result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
         
         for char in dm_property.characterlist:
             char.character.hide_viewport = False
+            char.character.player_property.distance_sphere.hide_viewport = False
         
         if result is None or obj is None:
             return

@@ -30,12 +30,12 @@ pygame_installed = False
 
 try:
     from .touch import register
-    print("Touch is inported")
+    print("Touch is imported")
     pygame_installed = True
 except ModuleNotFoundError as e:
     print(e)
     pygame_installed = False
-    print("pygame is not installed")
+    #print("pygame is not installed")
 from . properties import *
 from . main_ops import *
 from . utils import *
@@ -63,6 +63,7 @@ Dependency = namedtuple("Dependency", ["module", "package", "name"])
 # of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
 # "import" statement.
 dependencies = (Dependency(module="pygame", package=None, name=None),
+                Dependency(module="pywin32", package=None, name=None)
                 
 )
 
