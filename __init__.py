@@ -223,7 +223,7 @@ class TOUCH_preferences(bpy.types.AddonPreferences):
 
 
 blender_classes = [
-    TOUCH_PT_warning_panel,
+    #TOUCH_PT_warning_panel,
     TOUCH_OT_install_dependencies,
     TOUCH_preferences,
 ]

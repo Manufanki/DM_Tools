@@ -1,6 +1,7 @@
 import os
 import pygame as pg
 import numpy as np
+import math
 
 from bpy_extras import view3d_utils
 from mathutils import Vector
@@ -41,7 +42,6 @@ def angle_between(v1, v2):
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     angle = np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
     if np.dot(Vector((1,0,0)),v2_u) < 0:
         return angle
     else:
@@ -131,14 +131,21 @@ def update_player_pos(context,id,touch_pos):
 
         for char in dm_property.characterlist:
             if char.character.player_property.touch_id == id:
-                distance = np.linalg.norm(location-char.character.location)
-                # if distance > 5:
-                #     char.character.player_property.touch_id = -1
-                #     return
+
+                last_touch_pos = char.character.player_property.touch_pos
+                last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
+
+                touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
                 dir = location - char.character.location 
                 forward = Vector((0,1,0))
-                char.character.rotation_euler[2] = angle_between(forward, dir)
+                if touch_distance > 5:
+                    rot = angle_between(forward, dir)
+                    print(rot)
+                    #rot = round(rot / math.pi *4) *(math.pi /4)
+                    char.character.rotation_euler[2] = rot
                 char.character.location = location
+                char.character.player_property.touch_pos[0] = int(touch_pos[0])
+                char.character.player_property.touch_pos[1] = int(touch_pos[1])
 
 
 class TOUCH_OT_move(bpy.types.Operator):
@@ -179,8 +186,9 @@ class TOUCH_OT_move(bpy.types.Operator):
         else:
             alpha = 0 # if pygame window is complete transparent it will not recieve touch input 
 
-        x,y,w,h = get_window_rect(hwnd_touch)
+       
         try:
+            x,y,w,h = get_window_rect(hwnd_touch)
             x1,y1,w1,h1 = get_window_rect(hwnd_blender)
         except:
             context.scene.dm_property.touch_active = False
@@ -191,11 +199,12 @@ class TOUCH_OT_move(bpy.types.Operator):
         
         y1 = y1-(h -h1)
 
-
-        win32gui.SetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
-        winxpgui.SetLayeredWindowAttributes(hwnd_touch, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
-        win32gui.SetWindowPos(hwnd_touch, win32con.HWND_TOP, x1, y1, w, h, win32con.SWP_NOACTIVATE) 
-
+        try:
+            win32gui.SetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE, win32gui.GetWindowLong (hwnd_touch, win32con.GWL_EXSTYLE ) | win32con.WS_EX_LAYERED )
+            winxpgui.SetLayeredWindowAttributes(hwnd_touch, win32api.RGB(0,0,0), alpha, win32con.LWA_ALPHA)
+            win32gui.SetWindowPos(hwnd_touch, win32con.HWND_TOP, x1, y1, w, h, win32con.SWP_NOACTIVATE) 
+        except Exception as e:
+            print(e)
         caption = 'Touch'
         pg.display.set_caption(caption)
         

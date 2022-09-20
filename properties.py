@@ -79,6 +79,11 @@ class PlayerProperties(bpy.types.PropertyGroup):
         update=update_touch_active
     )
 
+    touch_pos: bpy.props.IntVectorProperty(
+        size=2,
+        default=(0, 0),
+    )
+    
     distance_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
     darkvision : bpy.props.FloatProperty(
