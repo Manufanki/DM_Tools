@@ -54,7 +54,7 @@ class PLAYER_Distance_Button(bpy.types.Operator):
             context.object.player_property.distance_sphere.parent = context.object
             context.object.player_property.distance_sphere.hide_set(True)
         loc = context.object.location
-        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z)
+        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z + 1)
         return {"FINISHED"} 
 
 class PLAYER_Torch_Button(bpy.types.Operator):
@@ -126,17 +126,33 @@ class PLAYER_add(bpy.types.Operator):
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
         
-        bpy.ops.mesh.primitive_uv_sphere_add(radius= 1, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_circle_add(vertices=128, radius= .5, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.convert(target='GPENCIL')
+        distance_sphere = context.object
+        distance_sphere.data.pixel_factor = 0.1
+        distance_sphere.active_material.grease_pencil.show_fill = True
+        distance_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        distance_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
+        distance_sphere.data.layers[0].use_lights = False
         distance_sphere = bpy.context.object
         distance_sphere.name = "Distance Sphere"
         distance_sphere.parent = player
         distance_sphere.lock_location = (False, False, True)
 
+
+
+
+
+
         player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
-        distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
+        # distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         component_list.append(distance_sphere)
+
+
+        
 
         
         bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
@@ -171,7 +187,7 @@ class PLAYER_add(bpy.types.Operator):
         spotDark.data.energy = 500000
         spotDark.data.color = (1, 1, 1)
         spotDark.data.spot_blend = 1
-        spotDark.data.use_shadow = False
+        #spotDark.data.use_shadow = False
         spotDark.data.use_custom_distance = True
         spotDark.data.cutoff_distance = 0
         component_list.append(spotDark)
@@ -813,14 +829,16 @@ class Window_new(bpy.types.Operator):
 
     def execute(self, context):
         bpy.ops.wm.window_new()
-        if self.touch_window:
-            context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
-            context.scene.dm_property.screen = bpy.context.screen
+        #if self.touch_window:
+        context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
+        context.scene.dm_property.screen = bpy.context.screen
         #context.scene.touch_manager.rv3d = bpy.context.region_data
         bpy.context.area.ui_type = 'VIEW_3D'
         bpy.context.space_data.shading.type = 'RENDERED'
         bpy.context.space_data.overlay.show_overlays = False
         bpy.context.space_data.show_gizmo = False
+        bpy.context.space_data.show_region_header = False
+
         #bpy.ops.screen.screen_full_area(use_hide_panels=True)
         #Camera view
         area = next(area for area in bpy.context.screen.areas if area.type == 'VIEW_3D')
@@ -855,20 +873,20 @@ class TOPBAR_PT_annotation_layers(bpy.types.Panel, AnnotationDataPanel):
 
 class TOUCH_OT_use_touch_operator(bpy.types.Operator):
     bl_idname = "touch.use_touch"
-    bl_label = "New Touchscreen Window"
+    bl_label = "Use Touchscreen"
     bl_description = "This operator uses starts the pygame modal operator."
     bl_options = {"REGISTER"}
 
     @classmethod
     def poll(self, context):
-        if pygame_installed:
+        if pygame_installed and context.scene.dm_property.hwnd_id is not -1:
             return True
         else:
             return False 
 
     def execute(self, context):
-        if not context.scene.dm_property.touch_active:
-            bpy.ops.window.new(touch_window = True)
+        # if not context.scene.dm_property.touch_active:
+        #     bpy.ops.window.new(touch_window = True)
         bpy.ops.touch.move('INVOKE_DEFAULT')
         return {"FINISHED"}
 

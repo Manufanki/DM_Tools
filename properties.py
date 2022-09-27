@@ -16,6 +16,18 @@ class MapPointerProperties(bpy.types.PropertyGroup):
     annotation : bpy.props.PointerProperty(type=bpy.types.GreasePencil)
 
 
+class TouchPointerProperties(bpy.types.PropertyGroup):
+    finger_id : bpy.props.IntProperty(default=-1)
+    zoom_value: bpy.props.FloatProperty()
+    touch_start: bpy.props.IntVectorProperty(
+    size=2,
+    default=(0, 0),
+    )
+    touch_pos: bpy.props.IntVectorProperty(
+    size=2,
+    default=(0, 0),
+    )
+
 class CharacterPointerProperties(bpy.types.PropertyGroup):
     character : bpy.props.PointerProperty(type=bpy.types.Object)
 
@@ -41,6 +53,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
         self.point_night.location[2] = self.player.location[2]+  self.player_height
     
     def update_player_color(self, context):
+        self.distance_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
+        self.distance_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
         if self.is_npc:
             rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
             rgb_node.inputs[0].default_value = self.player_color
@@ -115,7 +129,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         description="Player height in meter",
         min=0,
         max=2,
-        default= 1,
+        default= 2,
         update=update_player_height
     )
     list_index : bpy.props.IntProperty(
@@ -202,10 +216,14 @@ class DMProperties(bpy.types.PropertyGroup):
     camera :  bpy.props.PointerProperty(type=bpy.types.Object)
     camera_zoom_in : bpy.props.FloatProperty(
         default= 35,
+        min = 15,
+        max = 95,
         update=adjustCamera
     )
     camera_zoom_out : bpy.props.FloatProperty(
         default= 80,
+        min = 15,
+        max = 95,
         update=adjustCamera
     )
     camera_zoom_toggle : bpy.props.BoolProperty()
@@ -223,9 +241,14 @@ class DMProperties(bpy.types.PropertyGroup):
     maps_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
 
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
-    hwnd_id : bpy.props.IntProperty()
-    touchwindow_active : bpy.props.BoolProperty()
+    hwnd_id : bpy.props.IntProperty(default=-1)
+
     touch_active : bpy.props.BoolProperty()
+    touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
+
+    touch_device_id : bpy.props.IntProperty(default=-1)
+    hwnd_id : bpy.props.IntProperty(default=-1)
+    zoom_value: bpy.props.FloatProperty()
     touch_update_rate : bpy.props.FloatProperty(default=60,
     min= 1,
     max= 144)
@@ -236,6 +259,7 @@ blender_classes = [
     FloorPointerProperties,
     MapPointerProperties,
     CharacterPointerProperties,
+    TouchPointerProperties,
     DMProperties,
     ]
 def register():

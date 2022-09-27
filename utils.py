@@ -171,7 +171,7 @@ def CreateDistanceMaterial(self, context, color):
     material_dist.node_tree.nodes.remove(material_dist.node_tree.nodes.get('Principled BSDF'))
     
     material_out = material_dist.node_tree.nodes.get('Material Output')
-    material_out.location = (0,0)
+    material_out.location = (500,0)
 
     transparent_node = material_dist.node_tree.nodes.new('ShaderNodeBsdfTransparent')
     transparent_node.location = (-100,-400)
@@ -179,15 +179,20 @@ def CreateDistanceMaterial(self, context, color):
     emit_node = material_dist.node_tree.nodes.new('ShaderNodeEmission')
     emit_node.location = (-200,0)
 
+    fresnell_node = material_dist.node_tree.nodes.new('ShaderNodeFresnel')
+    fresnell_node.location = (-200,400)
+    fresnell_node.inputs[0].default_value = 9.0
+    
     emit_node.inputs[0].default_value = color
-    shaderMix_node.inputs[0].default_value = .985
+    
+    material_dist.node_tree.links.new(fresnell_node.outputs[0], shaderMix_node.inputs[0])
     material_dist.node_tree.links.new(emit_node.outputs[0], shaderMix_node.inputs[1])
     material_dist.node_tree.links.new(transparent_node.outputs[0], shaderMix_node.inputs[2])
     material_dist.node_tree.links.new(shaderMix_node.outputs[0], material_out.inputs[0])
     material_dist.use_backface_culling = True
 
     material_dist.shadow_method = 'NONE'
-    material_dist.blend_method = 'BLEND'
+    material_dist.blend_method = 'CLIP'
     return material_dist
 
 def CreateCaveMaterial(self, context):
