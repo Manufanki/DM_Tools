@@ -140,6 +140,7 @@ def set_touch_id( context,id,touch_pos, time):
         for touch in dm_property.touchlist:
             if touch.finger_id == id:
                 return
+        dm_property.zoom_value_backup = dm_property.camera_zoom
         dm_property.zoom_value = dm_property.camera_zoom
         add_touch_to_list(dm_property.touchlist,id, time,touch_pos)
 
@@ -227,52 +228,50 @@ def update_camera_pos(context,id,touch_pos):
         
         if index == -1:
             return
+            
+        if  touchlist[1].zoom_value == 0:
+            touch0_start = touchlist[0].touch_start
+            touch0_start = Vector((touch0_start[0], touch0_start[1]))
 
+            touch1_start = touchlist[1].touch_start
+            touch1_start = Vector((touch1_start[0], touch1_start[1]))
 
-        if index == 0:
+            touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
+
+        touch0_pos = touchlist[0].touch_pos
+        touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
+
+        touch1_pos = touchlist[1].touch_pos
+        touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
+
+        zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
+
+        new_zoom_value =  zoomvalue - touchlist[1].zoom_value
+        touchlist[1].zoom_value = zoomvalue
+        new_zoom_value = new_zoom_value *0.075
+
+        dm_property.zoom_value += new_zoom_value
+
+        threshold = 5
+        if abs(dm_property.zoom_value_backup - dm_property.zoom_value) > threshold:
+            if dm_property.zoom_value < dm_property.zoom_value_backup :
+                threshold = -threshold
+            dm_property.camera_zoom = dm_property.zoom_value - threshold
+            for char in dm_property.characterlist:
+                char.character.player_property.touch_id = -1
+        else:
             last_touch_pos = touchlist[index].touch_pos
             last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
+            #touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
 
-
-            touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
-
-            speed = 0.025
+            x = dm_property.camera_zoom * .01
+            a = 10
+            speed =  (-a*pow(x,.025) + a+.1) *0.1
+            print("Speed: ",speed)
             
             #result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
             dm_property.camera.location[0] +=  (last_touch_pos[0] - touch_pos[0]) * speed
             dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
-
-
-        elif index == 1:# and len(touchlist) >= 3:
-
-            
-            if  touchlist[1].zoom_value == 0:
-                touch0_start = touchlist[0].touch_start
-                touch0_start = Vector((touch0_start[0], touch0_start[1]))
-
-                touch1_start = touchlist[1].touch_start
-                touch1_start = Vector((touch1_start[0], touch1_start[1]))
-
-                touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
-
-            touch0_pos = touchlist[0].touch_pos
-            touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
-
-            touch1_pos = touchlist[1].touch_pos
-            touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
-
-            zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
-
-            new_zoom_value =  zoomvalue - touchlist[1].zoom_value
-            touchlist[1].zoom_value = zoomvalue
-            new_zoom_value = new_zoom_value *0.075
-
-            dm_property.camera_zoom += new_zoom_value
-
-
-            if abs(dm_property.zoom_value - dm_property.camera_zoom) > 5:
-                for char in dm_property.characterlist:
-                    char.character.player_property.touch_id = -1
 
             
 

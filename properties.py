@@ -259,6 +259,7 @@ class DMProperties(bpy.types.PropertyGroup):
     touch_device_id : bpy.props.IntProperty(default=-1)
     hwnd_id : bpy.props.IntProperty(default=-1)
     zoom_value: bpy.props.FloatProperty()
+    zoom_value_backup: bpy.props.FloatProperty()
     touch_update_rate : bpy.props.FloatProperty(default=60,
     min= 1,
     max= 144)
