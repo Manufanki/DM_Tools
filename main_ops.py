@@ -533,7 +533,6 @@ class CAMERA_zoom(bpy.types.Operator):
     def execute(self, context):
         dm_property = context.scene.dm_property
         camera = dm_property.camera
-        dm_property.camera_zoom_toggle = not dm_property.camera_zoom_toggle
         camera.data.lens = self.scale
 
         return {'FINISHED'}

@@ -64,12 +64,14 @@ class PlayerProperties(bpy.types.PropertyGroup):
     def update_player_color(self, context):
         self.distance_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.distance_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
-        if self.is_npc:
-            rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
-            rgb_node.inputs[0].default_value = self.player_color
-        else:
-            rgb_node = self.player_material.node_tree.nodes.get('Emission')
-            rgb_node.inputs[0].default_value = self.player_color
+        self.selection_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
+        self.selection_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
+        # if self.is_npc:
+        #     rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
+        #     rgb_node.inputs[0].default_value = self.player_color
+        # else:
+        #     rgb_node = self.player_material.node_tree.nodes.get('Emission')
+        #     rgb_node.inputs[0].default_value = self.player_color
     def update_move_distance(self,context):
         unitinfo = GetCurrentUnits()
         unit_dist = self.move_distance*2
@@ -225,19 +227,12 @@ class DMProperties(bpy.types.PropertyGroup):
     maplist : bpy.props.CollectionProperty(type = MapPointerProperties)
    
     camera :  bpy.props.PointerProperty(type=bpy.types.Object)
-    camera_zoom_in : bpy.props.FloatProperty(
-        default= 35,
-        min = 15,
-        max = 95,
+    camera_zoom : bpy.props.FloatProperty(
+        default= 60,
+        min = 10,
+        max = 100,
         update=adjustCamera
     )
-    camera_zoom_out : bpy.props.FloatProperty(
-        default= 80,
-        min = 15,
-        max = 95,
-        update=adjustCamera
-    )
-    camera_zoom_toggle : bpy.props.BoolProperty()
     camera_pan_toggle : bpy.props.BoolProperty()
     global_Sun : bpy.props.PointerProperty(type=bpy.types.SunLight)
     

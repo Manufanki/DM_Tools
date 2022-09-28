@@ -140,7 +140,7 @@ def set_touch_id( context,id,touch_pos, time):
         for touch in dm_property.touchlist:
             if touch.finger_id == id:
                 return
-
+        dm_property.zoom_value = dm_property.camera_zoom
         add_touch_to_list(dm_property.touchlist,id, time,touch_pos)
 
         print("FIRST TOUCH NAV")
@@ -243,7 +243,7 @@ def update_camera_pos(context,id,touch_pos):
             dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
 
 
-        elif index == 1 and len(touchlist) >= 3:
+        elif index == 1:# and len(touchlist) >= 3:
 
             
             if  touchlist[1].zoom_value == 0:
@@ -265,14 +265,14 @@ def update_camera_pos(context,id,touch_pos):
 
             new_zoom_value =  zoomvalue - touchlist[1].zoom_value
             touchlist[1].zoom_value = zoomvalue
-            new_zoom_value = new_zoom_value *0.05
-            if dm_property.camera_zoom_toggle:
-                dm_property.camera_zoom_in += new_zoom_value
-            else:
-                dm_property.camera_zoom_out += new_zoom_value
-        
-            for char in dm_property.characterlist:
-                char.character.player_property.touch_id = -1
+            new_zoom_value = new_zoom_value *0.075
+
+            dm_property.camera_zoom += new_zoom_value
+
+
+            if abs(dm_property.zoom_value - dm_property.camera_zoom) > 5:
+                for char in dm_property.characterlist:
+                    char.character.player_property.touch_id = -1
 
             
 

@@ -459,10 +459,8 @@ def toggleDayNight(self, context):
 
 
 def adjustCamera(self, context):
-    if self.camera_zoom_toggle:
-        self.camera.data.lens = self.camera_zoom_in
-    else:
-        self.camera.data.lens = self.camera_zoom_out
+    self.camera.data.lens = self.camera_zoom
+
 
 
 def selectMap(self, context):

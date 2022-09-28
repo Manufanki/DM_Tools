@@ -46,14 +46,9 @@ class DM_PT_CameraSetupPanel(bpy.types.Panel):
                 else:
                     col.operator("camera.pan",text ="Panning", icon="VIEW_PAN", emboss= not dm_property.camera_pan_toggle)
                 col.operator("view3d.view_camera",icon='OUTLINER_DATA_CAMERA')
-                
-                pan_row = col.split(factor=0.2)
-                if dm_property.camera_zoom_toggle:
-                    pan_row.operator("camera.togglezoom", icon ='ZOOM_IN',text="").scale = dm_property.camera_zoom_out
-                    pan_row.prop(dm_property, "camera_zoom_in", text="Zoom")
-                else:
-                    pan_row.operator("camera.togglezoom", icon ='ZOOM_OUT',text="").scale = dm_property.camera_zoom_in
-                    pan_row.prop(dm_property, "camera_zoom_out", text="Zoom")
+
+                col.prop(dm_property, "camera_zoom", text="Zoom")
+
                 #pan_row.prop(dm_property,"camera_pan_toggle",text="Active")
                 col.operator("camera.remove", icon ='PANEL_CLOSE')
      
