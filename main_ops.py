@@ -108,6 +108,8 @@ class PLAYER_add(bpy.types.Operator):
 
         player.name = self.tmp_name
         player_property = player.player_property
+        player_property.player_id = dm_prop.next_player_id
+        dm_prop.next_player_id += 1
         player.data.vertices[0].co.y += 0.3
         player.data.vertices[1].co.y += 0.3
         player_property.player = player
@@ -135,21 +137,37 @@ class PLAYER_add(bpy.types.Operator):
         distance_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
         distance_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
         distance_sphere.data.layers[0].use_lights = False
-        distance_sphere = bpy.context.object
+
         distance_sphere.name = "Distance Sphere"
         distance_sphere.parent = player
         distance_sphere.lock_location = (False, False, True)
 
+        bpy.ops.mesh.primitive_circle_add(vertices=32, radius= .05, enter_editmode=False, align='WORLD', location=(0, 0, 1), scale=(1, 1, 1))
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.convert(target='GPENCIL')    
+        selection_sphere = context.object
+        selection_sphere.data.pixel_factor = 0.1
+        selection_sphere.active_material.grease_pencil.show_fill = True
+        selection_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        selection_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
+        selection_sphere.data.layers[0].use_lights = False
+        selection_sphere.data.layers[0].line_change = 60
+
+        selection_sphere.parent = player
+        selection_sphere.name = "Selection Sphere"
+        selection_sphere.data.stroke_thickness_space = 'SCREENSPACE'
 
 
 
 
 
+        player_property.selection_sphere = selection_sphere
         player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
         # distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         component_list.append(distance_sphere)
+        component_list.append(selection_sphere)
 
 
         
@@ -258,6 +276,8 @@ class PLAYER_add(bpy.types.Operator):
             player_property.point_night = pointDark
         distance_sphere.hide_select = True
         distance_sphere.hide_set(True)
+        distance_sphere.hide_select = True
+        selection_sphere.hide_set(True)
         bpy.context.view_layer.objects.active = player
         player.select_set(True)
         return {'FINISHED'}

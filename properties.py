@@ -18,7 +18,9 @@ class MapPointerProperties(bpy.types.PropertyGroup):
 
 class TouchPointerProperties(bpy.types.PropertyGroup):
     finger_id : bpy.props.IntProperty(default=-1)
+    player_id : bpy.props.IntProperty(default=-1)
     zoom_value: bpy.props.FloatProperty()
+    start_time: bpy.props.FloatProperty()
     touch_start: bpy.props.IntVectorProperty(
     size=2,
     default=(0, 0),
@@ -34,18 +36,25 @@ class CharacterPointerProperties(bpy.types.PropertyGroup):
 class PlayerProperties(bpy.types.PropertyGroup):
 
     def update_touch_active(self, context):
-        if self.is_npc:
-            emit_node = self.player_material.node_tree.nodes.get('Principled BSDF')
-            if self.touch_id != -1:
-                emit_node.inputs[20].default_value = 300
-            else:
-                emit_node.inputs[20].default_value = 0
+
+        if self.touch_id != -1:
+            self.selection_sphere.hide_set(False)
         else:
-            emit_node = self.player_material.node_tree.nodes.get('Emission')
-            if self.touch_id != -1:
-                emit_node.inputs[1].default_value = 300
-            else:
-                emit_node.inputs[1].default_value = 1
+           self.selection_sphere.hide_set(True)
+
+
+        # if self.is_npc:
+        #     emit_node = self.player_material.node_tree.nodes.get('Principled BSDF')
+        #     if self.touch_id != -1:
+        #         emit_node.inputs[20].default_value = 300
+        #     else:
+        #         emit_node.inputs[20].default_value = 0
+        # else:
+        #     emit_node = self.player_material.node_tree.nodes.get('Emission')
+        #     if self.touch_id != -1:
+        #         emit_node.inputs[1].default_value = 300
+        #     else:
+        #         emit_node.inputs[1].default_value = 1
     def update_player_height(self, context):
         self.spot_day.location[2] = self.player.location[2]+ self.player_height
         self.point_day.location[2] = self.player.location[2]+ self.player_height
@@ -88,6 +97,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
         update=update_move_distance
     )
 
+    player_id : bpy.props.IntProperty( default = -1)
+
     touch_id : bpy.props.IntProperty(
         default = -1,
         update=update_touch_active
@@ -97,7 +108,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         size=2,
         default=(0, 0),
     )
-    
+    selection_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     distance_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
     darkvision : bpy.props.FloatProperty(
@@ -234,6 +245,8 @@ class DMProperties(bpy.types.PropertyGroup):
         update=toggleDayNight
     )
 
+    next_player_id : bpy.props.IntProperty(default=0)
+
     cave_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
     bf_wall_Mat : bpy.props.PointerProperty(type= bpy.types.Material)
 
@@ -245,6 +258,8 @@ class DMProperties(bpy.types.PropertyGroup):
 
     touch_active : bpy.props.BoolProperty()
     touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
+
+    player_touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
 
     touch_device_id : bpy.props.IntProperty(default=-1)
     hwnd_id : bpy.props.IntProperty(default=-1)
