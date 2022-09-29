@@ -712,41 +712,51 @@ class AddGrid(bpy.types.Operator):
     def execute(self, context):
 
         dm_property = context.scene.dm_property
-        bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.mesh.delete(type='ONLY_FACE')
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-        bpy.ops.object.convert(target='GPENCIL')
-        grid = context.object
-        
-        xValDrive = grid.driver_add("location", 0)
 
-        drvVar = xValDrive.driver.variables.new()
-        drvVar.name = 'xvar'
-        drvVar.type = 'TRANSFORMS'
-        drvVar.targets[0].id = dm_property.camera
-        drvVar.targets[0].transform_type = 'LOC_X'
-        xValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % drvVar.name
+        if dm_property.grid is None or  context.scene.objects.get(dm_property.grid.name) is None:
+            bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.mesh.delete(type='ONLY_FACE')
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+            bpy.ops.object.convert(target='GPENCIL')
+            bpy.context.object.show_in_front = True
+            grid = context.object
+            grid.name = "Grid"
 
-        yValDrive = grid.driver_add("location", 1)
+            
+            xValDrive = grid.driver_add("location", 0)
 
-        yVar = yValDrive.driver.variables.new()
-        yVar.name = 'yvar'
-        yVar.type = 'TRANSFORMS'
-        yVar.targets[0].id = dm_property.camera
-        yVar.targets[0].transform_type = 'LOC_Y'
-        yValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % yVar.name
+            drvVar = xValDrive.driver.variables.new()
+            drvVar.name = 'xvar'
+            drvVar.type = 'TRANSFORMS'
+            drvVar.targets[0].id = dm_property.camera
+            drvVar.targets[0].transform_type = 'LOC_X'
+            xValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % drvVar.name
 
-        grid.data.layers["Grid_Lines"].line_change = -20
-        grid.data.stroke_thickness_space = 'SCREENSPACE'
+            yValDrive = grid.driver_add("location", 1)
 
-        dm_property = context.scene.dm_property
+            yVar = yValDrive.driver.variables.new()
+            yVar.name = 'yvar'
+            yVar.type = 'TRANSFORMS'
+            yVar.targets[0].id = dm_property.camera
+            yVar.targets[0].transform_type = 'LOC_Y'
+            yValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % yVar.name
 
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
-            grid)
-        #grid.hide_select = True
-        grid.select_set(False)
+            grid.data.layers["Grid_Lines"].line_change = -20
+            grid.data.stroke_thickness_space = 'SCREENSPACE'
+
+            dm_property = context.scene.dm_property
+
+            # addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            #     grid)
+            addToCollection(self,context, "Camera", grid)
+            #grid.hide_select = True
+            grid.select_set(False)
+            grid.hide_select = True
+            dm_property.grid = grid
+        else:
+            dm_property.grid.hide_viewport = not dm_property.grid.hide_viewport
         return{'FINISHED'}
 
 class ConvertGPencilToWall(bpy.types.Operator):

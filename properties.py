@@ -225,7 +225,7 @@ class DMProperties(bpy.types.PropertyGroup):
         update=selectMap
     )
     maplist : bpy.props.CollectionProperty(type = MapPointerProperties)
-   
+    grid :  bpy.props.PointerProperty(type=bpy.types.Object)
     camera :  bpy.props.PointerProperty(type=bpy.types.Object)
     camera_zoom : bpy.props.FloatProperty(
         default= 60,
