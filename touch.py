@@ -90,25 +90,7 @@ def set_touch_id( context,id,touch_pos, time):
         index = -1
         for char in dm_property.characterlist:
             index += 1
-            if obj == char.character:
-                char.character.player_property.touch_id = id
-
-                for touch in dm_property.player_touchlist:
-                    if touch.player_id == char.character.player_property.player_id:
-                        if time -touch.start_time < .5:
-                            bpy.context.view_layer.objects.active = char.character
-                            bpy.ops.player.distance_toggle()
-                        
-                        touch.finger_id = id
-                        touch.start_time = time
-                        touch.touch_start[0] = int(touch_pos[0])
-                        touch.touch_start[1] = int(touch_pos[1])        
-                        touch.touch_pos[0] = int(touch_pos[0])
-                        touch.touch_pos[1] = int(touch_pos[1])
-                        return
-                add_touch_to_list(dm_property.player_touchlist,id, time,touch_pos, char.character.player_property.player_id)
-                return
-            elif not char.character.player_property.distance_sphere.hide_get():
+            if not char.character.player_property.distance_sphere.hide_get():
                 for touch in dm_property.player_touchlist:
                     d = np.linalg.norm(location-char.character.location)
                     if d < char.character.player_property.move_distance and touch.player_id == char.character.player_property.player_id:  
@@ -127,13 +109,29 @@ def set_touch_id( context,id,touch_pos, time):
                         char.character.player_property.touch_id = id
                         return
 
-        #     d = np.linalg.norm(location-char.character.location)
-        #     if d < 2 and d < distance and char.character.player_property.touch_id == -1:
-        #         distance = d
-        #         player_index = index
-        # if player_index != -1:
-        #         # dm_property.characterlist[player_index].character.player_property.touch_id = id
-        #         return
+            d = np.linalg.norm(location-char.character.location)
+            if d < 2 and d < distance:# and char.character.player_property.touch_id == -1:
+                distance = d
+                player_index = index
+        if player_index != -1:
+            char = dm_property.characterlist[player_index]
+            char.character.player_property.touch_id = id
+
+            for touch in dm_property.player_touchlist:
+                if touch.player_id == char.character.player_property.player_id:
+                    if time -touch.start_time < .5:
+                        bpy.context.view_layer.objects.active = char.character
+                        bpy.ops.player.distance_toggle()
+                    
+                    touch.finger_id = id
+                    touch.start_time = time
+                    touch.touch_start[0] = int(touch_pos[0])
+                    touch.touch_start[1] = int(touch_pos[1])        
+                    touch.touch_pos[0] = int(touch_pos[0])
+                    touch.touch_pos[1] = int(touch_pos[1])
+                    return
+            add_touch_to_list(dm_property.player_touchlist,id, time,touch_pos, char.character.player_property.player_id)
+            return
 
 
 
@@ -178,13 +176,13 @@ def update_player_pos(context,id,touch_pos):
         direction = ray_origin_mouse + (view_vector_mouse * 1000)
         direction =  direction - ray_origin_mouse
         
-        for char in dm_property.characterlist:
-            char.character.hide_viewport = True
+        # for char in dm_property.characterlist:
+        #     char.character.hide_viewport = True
         
         result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
         
-        for char in dm_property.characterlist:
-            char.character.hide_viewport = False
+        # for char in dm_property.characterlist:
+        #     char.character.hide_viewport = False
         
         if result is None or obj is None:
             return
@@ -307,7 +305,6 @@ class TOUCH_OT_move(bpy.types.Operator):
             return {'CANCELLED'}
 
         self.time += 1/context.scene.dm_property.touch_update_rate
-        #print(self.time)
 
         hwnd_blender = dm_property.hwnd_id
       

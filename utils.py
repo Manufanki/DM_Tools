@@ -48,62 +48,6 @@ def bu_to_unit(value, scale):
 def unit_to_bu(value, scale):
     return value * scale
 
-def CreateDarknessMaterial(self, context):
-    if bpy.data.materials.get("DND_Darkness"):
-        material_darkness = bpy.data.materials.get("DND_Darkness")
-    else:
-        material_darkness = bpy.data.materials.new("DND_Darkness")
-        material_darkness.use_nodes = True
-        material_darkness.node_tree.nodes.remove(material_darkness.node_tree.nodes.get('Principled BSDF'))
-        
-        material_out = material_darkness.node_tree.nodes.get('Material Output')
-        material_out.location = (300,0)
-
-        diffuse1_node = material_darkness.node_tree.nodes.new('ShaderNodeBsdfDiffuse')
-        diffuse1_node.location = (-1000,0)
-
-        shaderRGB_node = material_darkness.node_tree.nodes.new('ShaderNodeShaderToRGB')
-        shaderRGB_node.location = (-800,0)
-
-        seperateRGB_node = material_darkness.node_tree.nodes.new('ShaderNodeSeparateRGB')
-        seperateRGB_node.location = (-600,0)
-
-        colorRamp1_node = material_darkness.node_tree.nodes.new('ShaderNodeValToRGB')
-        colorRamp1_node.location = (-400,0)
-
-        colorRamp2_node = material_darkness.node_tree.nodes.new('ShaderNodeValToRGB')
-        colorRamp2_node.location = (-400,-250)
-
-        shaderMix1_node = material_darkness.node_tree.nodes.new('ShaderNodeMixShader')
-        shaderMix1_node.location = (300,0)
-
-        shaderMix2_node = material_darkness.node_tree.nodes.new('ShaderNodeMixShader')
-        shaderMix2_node.location = (100,0)
-
-        diffuse2_node = material_darkness.node_tree.nodes.new('ShaderNodeBsdfDiffuse')
-        diffuse2_node.location = (-100,-250)
-        diffuse2_node.inputs[0].default_value = (0,0,0,1)
-
-        transparent_node = material_darkness.node_tree.nodes.new('ShaderNodeBsdfTransparent')
-        transparent_node.location = (-100,-400)
-        
-        #Linking
-        material_darkness.node_tree.links.new(diffuse1_node.outputs[0], shaderRGB_node.inputs[0])
-        material_darkness.node_tree.links.new(shaderRGB_node.outputs[0], seperateRGB_node.inputs[0])
-        material_darkness.node_tree.links.new(seperateRGB_node.outputs[2], colorRamp1_node.inputs[0])
-        material_darkness.node_tree.links.new(seperateRGB_node.outputs[0], colorRamp2_node.inputs[0])
-        material_darkness.node_tree.links.new(colorRamp2_node.outputs[0], shaderMix2_node.inputs[0])
-        material_darkness.node_tree.links.new(diffuse2_node.outputs[0], shaderMix2_node.inputs[1])
-        material_darkness.node_tree.links.new(transparent_node.outputs[0], shaderMix2_node.inputs[2])
-        material_darkness.node_tree.links.new(colorRamp1_node.outputs[0], shaderMix1_node.inputs[0])
-        material_darkness.node_tree.links.new(diffuse2_node.outputs[0], shaderMix1_node.inputs[1])
-        material_darkness.node_tree.links.new(shaderMix2_node.outputs[0], shaderMix1_node.inputs[2])
-        material_darkness.node_tree.links.new(shaderMix1_node.outputs[0], material_out.inputs[0])
-        
-        material_darkness.blend_method = 'BLEND'
-    return material_darkness
-
-
 def CreateMapMaterial(self, context,image):
     material_map = bpy.data.materials.new(name="Map MATERIAL")
     material_map.use_nodes = True
@@ -133,67 +77,6 @@ def CreateMapMaterial(self, context,image):
     material_map.shadow_method = 'NONE'
     return material_map
 
-def  CreatePlayerMaterial(self, context, color):
-    material_player = bpy.data.materials.new(name="Player MATERIAL")
-    material_player.use_nodes = True
-    
-    material_player.node_tree.nodes.remove(material_player.node_tree.nodes.get('Principled BSDF'))
-
-    material_out = material_player.node_tree.nodes.get('Material Output')
-    material_out.location = (0,0)
-
-    emit_node = material_player.node_tree.nodes.new('ShaderNodeEmission')
-    emit_node.location = (-200,0)
-    emit_node.inputs[0].default_value = color
-    material_player.node_tree.links.new(emit_node.outputs[0], material_out.inputs[0])
-
-    material_player.shadow_method = 'NONE'
-    return material_player
-
-def  CreateNPCMaterial(self, context, color):
-    material_player = bpy.data.materials.new(name="NPC MATERIAL")
-    material_player.use_nodes = True
-    
-    principled_node = material_player.node_tree.nodes.get('Principled BSDF')
-
-    principled_node.inputs[0].default_value = color
-    principled_node.inputs[19].default_value = color
-    principled_node.inputs[20].default_value = 0
-    material_player.shadow_method = 'NONE'
-    return material_player
-
-def CreateDistanceMaterial(self, context, color):
-    material_dist = bpy.data.materials.new(name="Distance MATERIAL")
-    material_dist.use_nodes = True
-    
-    shaderMix_node = material_dist.node_tree.nodes.new('ShaderNodeMixShader')
-    shaderMix_node.location = (100,0)
-    material_dist.node_tree.nodes.remove(material_dist.node_tree.nodes.get('Principled BSDF'))
-    
-    material_out = material_dist.node_tree.nodes.get('Material Output')
-    material_out.location = (500,0)
-
-    transparent_node = material_dist.node_tree.nodes.new('ShaderNodeBsdfTransparent')
-    transparent_node.location = (-100,-400)
-
-    emit_node = material_dist.node_tree.nodes.new('ShaderNodeEmission')
-    emit_node.location = (-200,0)
-
-    fresnell_node = material_dist.node_tree.nodes.new('ShaderNodeFresnel')
-    fresnell_node.location = (-200,400)
-    fresnell_node.inputs[0].default_value = 9.0
-    
-    emit_node.inputs[0].default_value = color
-    
-    material_dist.node_tree.links.new(fresnell_node.outputs[0], shaderMix_node.inputs[0])
-    material_dist.node_tree.links.new(emit_node.outputs[0], shaderMix_node.inputs[1])
-    material_dist.node_tree.links.new(transparent_node.outputs[0], shaderMix_node.inputs[2])
-    material_dist.node_tree.links.new(shaderMix_node.outputs[0], material_out.inputs[0])
-    material_dist.use_backface_culling = True
-
-    material_dist.shadow_method = 'NONE'
-    material_dist.blend_method = 'CLIP'
-    return material_dist
 
 def CreateCaveMaterial(self, context):
     dm_property = context.scene.dm_property
@@ -426,14 +309,9 @@ def get_rayhit_loc(self, context,reg,touch_pos):
         ray_origin_mouse = view3d_utils.region_2d_to_origin_3d(region, rv3d,touch_pos)# self.touch_pos)
         direction = ray_origin_mouse + (view_vector_mouse * 1000)
         direction =  direction - ray_origin_mouse
-        for char in dm_property.characterlist:
-            char.character.hide_viewport = True
         
         result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
-        
-        for char in dm_property.characterlist:
-            char.character.hide_viewport = False
-            
+          
         if result is None:
             return
         return location

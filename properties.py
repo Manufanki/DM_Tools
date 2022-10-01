@@ -62,6 +62,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
         self.point_night.location[2] = self.player.location[2]+  self.player_height
     
     def update_player_color(self, context):
+        self.player.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
+        self.player.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.distance_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.distance_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
         self.selection_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
@@ -125,7 +127,6 @@ class PlayerProperties(bpy.types.PropertyGroup):
     point_day : bpy.props.PointerProperty(type=bpy.types.Object)
     spot_night : bpy.props.PointerProperty(type=bpy.types.Object)
     point_night : bpy.props.PointerProperty(type=bpy.types.Object)
-    player_material : bpy.props.PointerProperty(type=bpy.types.Material)
     #name : bpy.props.StringProperty()
     player_color: bpy.props.FloatVectorProperty(
         name="player_color",

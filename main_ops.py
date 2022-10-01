@@ -96,11 +96,24 @@ class PLAYER_add(bpy.types.Operator):
 
         player_height = 2
         if self.tmp_is_npc == True:
-            player_height = 0.5
             rgb = colorsys.hsv_to_rgb(random.uniform(0, 1),1,.05)
             tmp_player_color = (rgb[0],rgb[1],rgb[2],1)
-        bpy.ops.mesh.primitive_cylinder_add(radius=0.55, depth=player_height, enter_editmode=False, align='WORLD', location=location, scale=(1, 1, 1))
+        bpy.ops.mesh.primitive_circle_add(radius=0.55, enter_editmode=False, align='WORLD', location=location, scale=(1, 1, 1))
+        bpy.context.object.data.vertices[0].co.y += 0.3
+        bpy.ops.object.convert(target='GPENCIL')
         player = bpy.context.object
+        player.data.pixel_factor = 0.1
+        player.active_material.grease_pencil.show_fill = True
+        player.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        player.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        player.data.layers[0].use_lights = self.tmp_is_npc
+        player.show_in_front = True
+
+        if self.tmp_is_npc == True:
+            player.data.layers[0].blend_mode = 'HARDLIGHT'
+
+
+
         component_list = []
         light_list = []
         component_list.append(player)
@@ -110,8 +123,8 @@ class PLAYER_add(bpy.types.Operator):
         player_property = player.player_property
         player_property.player_id = dm_prop.next_player_id
         dm_prop.next_player_id += 1
-        player.data.vertices[0].co.y += 0.3
-        player.data.vertices[1].co.y += 0.3
+
+        #player.data.vertices[1].co.y += 0.3
         player_property.player = player
 
         player_pointer = dm_prop.characterlist.add()
@@ -120,11 +133,7 @@ class PLAYER_add(bpy.types.Operator):
         player_property.list_index = dm_prop.characterlist_data_index
         player_property.name = self.tmp_name
         player_property.is_npc = self.tmp_is_npc
-        if self.tmp_is_npc == True:
-            player_property.player_material = CreateNPCMaterial(self, context, tmp_player_color)
-        else:
-            player_property.player_material = CreatePlayerMaterial(self, context, tmp_player_color)
-        player.data.materials.append(player_property.player_material)
+
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
         
@@ -137,7 +146,7 @@ class PLAYER_add(bpy.types.Operator):
         distance_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
         distance_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
         distance_sphere.data.layers[0].use_lights = False
-
+        distance_sphere.show_in_front = True         
         distance_sphere.name = "Distance Sphere"
         distance_sphere.parent = player
         distance_sphere.lock_location = (False, False, True)
@@ -165,7 +174,6 @@ class PLAYER_add(bpy.types.Operator):
         player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
-        # distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         component_list.append(distance_sphere)
         component_list.append(selection_sphere)
 
@@ -695,7 +703,6 @@ class AddWhiteMapImage(bpy.types.Operator):
         bpy.ops.mesh.primitive_plane_add(size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
         map = context.object
         map.name = "White_BG"
-        #map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
         dm_property = context.scene.dm_property
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             map)
