@@ -1,3 +1,4 @@
+import re
 import bpy
 from bpy_extras import view3d_utils
 from mathutils import Vector
@@ -77,6 +78,34 @@ def CreateMapMaterial(self, context,image):
     material_map.shadow_method = 'NONE'
     return material_map
 
+def  CreatePlayerMaterial(self, context, color):
+    material_player = bpy.data.materials.new(name="Player MATERIAL")
+    material_player.use_nodes = True
+    
+    material_player.node_tree.nodes.remove(material_player.node_tree.nodes.get('Principled BSDF'))
+
+    material_out = material_player.node_tree.nodes.get('Material Output')
+    material_out.location = (0,0)
+
+    emit_node = material_player.node_tree.nodes.new('ShaderNodeEmission')
+    emit_node.location = (-200,0)
+    emit_node.inputs[0].default_value = color
+    material_player.node_tree.links.new(emit_node.outputs[0], material_out.inputs[0])
+
+    material_player.shadow_method = 'NONE'
+    return material_player
+
+def  CreateNPCMaterial(self, context, color):
+    material_player = bpy.data.materials.new(name="NPC MATERIAL")
+    material_player.use_nodes = True
+    
+    principled_node = material_player.node_tree.nodes.get('Principled BSDF')
+
+    principled_node.inputs[0].default_value = color
+    principled_node.inputs[19].default_value = color
+    principled_node.inputs[20].default_value = 0
+    material_player.shadow_method = 'NONE'
+    return material_player
 
 def CreateCaveMaterial(self, context):
     dm_property = context.scene.dm_property
@@ -180,7 +209,7 @@ def update_players(self,context, collection):
     for player in collection.all_objects:
         if player.player_property.name != "":
                 player_pointer = dm_property.characterlist.add()
-                player_pointer.character = player
+                player_pointer.obj = player
                 player_pointer.player_property = player.player_property
     sort_player_list(self, context)
 
@@ -188,7 +217,7 @@ def sort_player_list(self,context):
     dm_property = context.scene.dm_property
     initiative_list = {}
     for i in range(len(dm_property.characterlist)):
-        initiative_list[i]  =  dm_property.characterlist[i].character.player_property.list_index
+        initiative_list[i]  =  dm_property.characterlist[i].obj.player_property.list_index
 
 
     initiative_list = dict(sorted(initiative_list.items(), key=lambda item: item[1],reverse=True))
@@ -289,9 +318,9 @@ def selectCharacter(self, context):
     bpy.ops.object.select_all(action='DESELECT')
     if self.characterlist_data_index != -1:
         for char in self.characterlist:
-            char.character.select_set(False)
-        self.characterlist[self.characterlist_data_index].character.select_set(True)
-        bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].character
+            char.obj.select_set(False)
+        self.characterlist[self.characterlist_data_index].obj.select_set(True)
+        bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].obj
 
 
 
@@ -327,7 +356,7 @@ def recurLayerCollection(layerColl, collName):
 
 def toggleDayNight(self, context):
     for char in self.characterlist:
-        player = char.character.player_property
+        player = char.obj.player_property
         if player.is_npc:
             continue
         player.spot_day.hide_viewport = self.day_night
@@ -340,6 +369,11 @@ def adjustCamera(self, context):
     self.camera.data.lens = self.camera_zoom
 
 
+def obj_in_objectlist(obj, list):
+    for item in list:
+        if item.obj == obj:
+            return True
+    return False
 
 def selectMap(self, context):
     print("SELECT MAP")

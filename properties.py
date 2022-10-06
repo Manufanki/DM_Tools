@@ -30,8 +30,10 @@ class TouchPointerProperties(bpy.types.PropertyGroup):
     default=(0, 0),
     )
 
-class CharacterPointerProperties(bpy.types.PropertyGroup):
-    character : bpy.props.PointerProperty(type=bpy.types.Object)
+class ObjectPointerProperties(bpy.types.PropertyGroup):
+    obj : bpy.props.PointerProperty(type=bpy.types.Object)
+class FloatPointerProperties(bpy.types.PropertyGroup):
+    value : bpy.props.FloatProperty()
 
 class PlayerProperties(bpy.types.PropertyGroup):
 
@@ -43,37 +45,24 @@ class PlayerProperties(bpy.types.PropertyGroup):
            self.selection_sphere.hide_set(True)
 
 
-        # if self.is_npc:
-        #     emit_node = self.player_material.node_tree.nodes.get('Principled BSDF')
-        #     if self.touch_id != -1:
-        #         emit_node.inputs[20].default_value = 300
-        #     else:
-        #         emit_node.inputs[20].default_value = 0
-        # else:
-        #     emit_node = self.player_material.node_tree.nodes.get('Emission')
-        #     if self.touch_id != -1:
-        #         emit_node.inputs[1].default_value = 300
-        #     else:
-        #         emit_node.inputs[1].default_value = 1
     def update_player_height(self, context):
-        self.spot_day.location[2] = self.player.location[2]+ self.player_height
-        self.point_day.location[2] = self.player.location[2]+ self.player_height
-        self.spot_night.location[2] = self.player.location[2]+ self.player_height
-        self.point_night.location[2] = self.player.location[2]+  self.player_height
+        self.spot_day.location[2] = self.player_height
+        self.point_day.location[2] = self.player_height
+        self.spot_night.location[2] = self.player_height
+        self.point_night.location[2] = self.player_height
     
     def update_player_color(self, context):
-        self.player.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
-        self.player.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.distance_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.distance_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
         self.selection_sphere.active_material.grease_pencil.color = (self.player_color[0], self.player_color[1], self.player_color[2], 1)
         self.selection_sphere.active_material.grease_pencil.fill_color = (self.player_color[0], self.player_color[1], self.player_color[2], .1)
-        # if self.is_npc:
-        #     rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
-        #     rgb_node.inputs[0].default_value = self.player_color
-        # else:
-        #     rgb_node = self.player_material.node_tree.nodes.get('Emission')
-        #     rgb_node.inputs[0].default_value = self.player_color
+        if self.is_npc:
+            rgb_node = self.player_material.node_tree.nodes.get('Principled BSDF')
+            rgb_node.inputs[0].default_value = self.player_color
+        else:
+            rgb_node = self.player_material.node_tree.nodes.get('Emission')
+            rgb_node.inputs[0].default_value = self.player_color
+   
     def update_move_distance(self,context):
         unitinfo = GetCurrentUnits()
         unit_dist = self.move_distance*2
@@ -127,6 +116,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
     point_day : bpy.props.PointerProperty(type=bpy.types.Object)
     spot_night : bpy.props.PointerProperty(type=bpy.types.Object)
     point_night : bpy.props.PointerProperty(type=bpy.types.Object)
+    player_material : bpy.props.PointerProperty(type=bpy.types.Material)
+
     #name : bpy.props.StringProperty()
     player_color: bpy.props.FloatVectorProperty(
         name="player_color",
@@ -141,52 +132,14 @@ class PlayerProperties(bpy.types.PropertyGroup):
     player_height : bpy.props.FloatProperty(
         name="player_height",
         description="Player height in meter",
-        min=0,
-        max=2,
-        default= 2,
+        min=.5,
+        max=5,
+        default= 1.8,
         update=update_player_height
     )
     list_index : bpy.props.IntProperty(
     name="index",
     description="index",
-    default= 0,
-    min=0,
-    )
-
-
-    strength : bpy.props.IntProperty(
-    name="STR",
-    description="STR",
-    default= 0,
-    min=0,
-    )
-    dexterity : bpy.props.IntProperty(
-    name="DEX",
-    description="DEX",
-    default= 0,
-    min=0,
-    )
-    constitution : bpy.props.IntProperty(
-    name="CON",
-    description="constitution",
-    default= 0,
-    min=0,
-    )
-    intelligence : bpy.props.IntProperty(
-    name="INT",
-    description="intelligence",
-    default= 0,
-    min=0,
-    )
-    wisdom : bpy.props.IntProperty(
-    name="WIS",
-    description="wisdom",
-    default= 0,
-    min=0,
-    )
-    charisma : bpy.props.IntProperty(
-    name="CHA",
-    description="charisma",
     default= 0,
     min=0,
     )
@@ -204,12 +157,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
     default= 10,
     min=0,
     )
-    attack_bonus : bpy.props.IntProperty(
-    name="attak_bonus",
-    description="Bonus",
-    default= 0,
-    min=0,
-    )
+
+    rotationlist : bpy.props.CollectionProperty(type = FloatPointerProperties)
     player : bpy.props.PointerProperty(type=bpy.types.Object)
 
 class DMProperties(bpy.types.PropertyGroup):
@@ -220,7 +169,8 @@ class DMProperties(bpy.types.PropertyGroup):
     characterlist_data_index : bpy.props.IntProperty(
         update=selectCharacter
     )
-    characterlist : bpy.props.CollectionProperty(type = CharacterPointerProperties)
+    characterlist : bpy.props.CollectionProperty(type = ObjectPointerProperties)
+    groundlist : bpy.props.CollectionProperty(type = ObjectPointerProperties)
 
     maplist_data_index : bpy.props.IntProperty(
         update=selectMap
@@ -267,10 +217,11 @@ class DMProperties(bpy.types.PropertyGroup):
 
 
 blender_classes = [
+    FloatPointerProperties,
     PlayerProperties,    
     FloorPointerProperties,
     MapPointerProperties,
-    CharacterPointerProperties,
+    ObjectPointerProperties,
     TouchPointerProperties,
     DMProperties,
     ]
