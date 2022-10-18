@@ -54,7 +54,7 @@ class PLAYER_Distance_Button(bpy.types.Operator):
             context.object.player_property.distance_sphere.parent = context.object
             context.object.player_property.distance_sphere.hide_set(True)
         loc = context.object.location
-        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z)
+        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z + 1)
         return {"FINISHED"} 
 
 class PLAYER_Torch_Button(bpy.types.Operator):
@@ -108,12 +108,14 @@ class PLAYER_add(bpy.types.Operator):
 
         player.name = self.tmp_name
         player_property = player.player_property
+        player_property.player_id = dm_prop.next_player_id
+        dm_prop.next_player_id += 1
         player.data.vertices[0].co.y += 0.3
         player.data.vertices[1].co.y += 0.3
         player_property.player = player
 
         player_pointer = dm_prop.characterlist.add()
-        player_pointer.character = player
+        player_pointer.obj = player
 
         player_property.list_index = dm_prop.characterlist_data_index
         player_property.name = self.tmp_name
@@ -126,17 +128,48 @@ class PLAYER_add(bpy.types.Operator):
         player.lock_location = (False, False, True)
         player.lock_rotation = (True, True, False)
         
-        bpy.ops.mesh.primitive_uv_sphere_add(radius= 1, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-        distance_sphere = bpy.context.object
+        bpy.ops.mesh.primitive_circle_add(vertices=128, radius= .5, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.convert(target='GPENCIL')
+        distance_sphere = context.object
+        distance_sphere.data.pixel_factor = 0.1
+        distance_sphere.active_material.grease_pencil.show_fill = True
+        distance_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        distance_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
+        distance_sphere.data.layers[0].use_lights = False
+        distance_sphere.show_in_front = True         
         distance_sphere.name = "Distance Sphere"
         distance_sphere.parent = player
         distance_sphere.lock_location = (False, False, True)
 
+        bpy.ops.mesh.primitive_circle_add(vertices=32, radius= .05, enter_editmode=False, align='WORLD', location=(0, 0, 1), scale=(1, 1, 1))
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.convert(target='GPENCIL')    
+        selection_sphere = context.object
+        selection_sphere.data.pixel_factor = 0.1
+        selection_sphere.active_material.grease_pencil.show_fill = True
+        selection_sphere.active_material.grease_pencil.color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], 1)
+        selection_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
+        selection_sphere.data.layers[0].use_lights = False
+        selection_sphere.data.layers[0].line_change = 60
+        selection_sphere.show_in_front = True  
+        selection_sphere.parent = player
+        selection_sphere.name = "Selection Sphere"
+        selection_sphere.data.stroke_thickness_space = 'SCREENSPACE'
+
+
+
+
+
+        player_property.selection_sphere = selection_sphere
         player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
-        distance_sphere.data.materials.append(CreateDistanceMaterial(self, context, (0,1,0,0.2)))
         component_list.append(distance_sphere)
+        component_list.append(selection_sphere)
+
+
+        
 
         
         bpy.ops.object.light_add(type='SPOT', align='WORLD', location=(0, 0, player_property.player_height), rotation=(1.5708, 0, 0), scale=(1, 1, 1))
@@ -169,9 +202,9 @@ class PLAYER_add(bpy.types.Operator):
         spotDark.data.spot_size = 1.74
         spotDark.data.shadow_soft_size = 100
         spotDark.data.energy = 500000
-        spotDark.data.color = (1, 1, 1)
+        spotDark.data.color = (.2, .2, 1)
         spotDark.data.spot_blend = 1
-        spotDark.data.use_shadow = False
+        #spotDark.data.use_shadow = False
         spotDark.data.use_custom_distance = True
         spotDark.data.cutoff_distance = 0
         component_list.append(spotDark)
@@ -183,7 +216,7 @@ class PLAYER_add(bpy.types.Operator):
         pointDark.parent = player
         pointDark.data.shadow_soft_size = 2
         pointDark.data.energy = 150
-        pointDark.data.color = (1, 1, 1)
+        pointDark.data.color = (.2, .2, 1)
         pointDark.data.use_custom_distance = True
         pointDark.data.cutoff_distance = 0
         component_list.append(pointDark)
@@ -242,11 +275,13 @@ class PLAYER_add(bpy.types.Operator):
             player_property.point_night = pointDark
         distance_sphere.hide_select = True
         distance_sphere.hide_set(True)
+        distance_sphere.hide_select = True
+        selection_sphere.hide_set(True)
         bpy.context.view_layer.objects.active = player
         player.select_set(True)
         return {'FINISHED'}
 class PLAYER_update(bpy.types.Operator):
-    "Add Map Collection to the Scene"
+    """Reloads all Players and NPCs"""
     bl_idname = "player.update"
     bl_label = "Update players"
     
@@ -263,7 +298,7 @@ class PLAYER_update(bpy.types.Operator):
         return {'FINISHED'}
 
 class MAP_add(bpy.types.Operator):
-    "Add Map Collection to the Scene"
+    "Adds a new Map-Collection to the Scene"
     bl_idname = "map.add"
     bl_label = "Add Map"
     
@@ -303,7 +338,7 @@ class MAP_add(bpy.types.Operator):
         
         return {'FINISHED'}
 class MAP_update(bpy.types.Operator):
-    "Add Map Collection to the Scene"
+    "Reloads all Maps and Floors"
     bl_idname = "map.update"
     bl_label = "Update Maps"
     
@@ -319,7 +354,7 @@ class MAP_update(bpy.types.Operator):
         return {'FINISHED'}
 
 class FLOOR_add(bpy.types.Operator):
-    "Add a Floor to the current Map"
+    "Adds a new Floor-Collection to the current Mapcollection"
     bl_idname = "floor.add"
     bl_label = "Add Floor"
     
@@ -359,7 +394,7 @@ class FLOOR_add(bpy.types.Operator):
         
         return {'FINISHED'}
 class SCENE_Grid_Setup(bpy.types.Operator):
-    """SetupGridScene"""
+    """Set Viewport Grid to 5ft or 1.5 meter"""
     bl_idname = "scene.grid_scale"
     bl_label = "Set Grid Scale"
 
@@ -381,7 +416,7 @@ class SCENE_Grid_Setup(bpy.types.Operator):
         return {'FINISHED'}
 
 class SCENE_Setup(bpy.types.Operator):
-    """Setup of Scenebackground, Eevee ettings, Collections and Camera"""
+    """Setup for Background, Collections, Camera, Eevee-Settings"""
     bl_idname = "scene.setup"
     bl_label = "Setup the Scene"
 
@@ -435,7 +470,7 @@ class SCENE_Setup(bpy.types.Operator):
         return {'FINISHED'}
 
 class CAMERA_add(bpy.types.Operator):
-    """Add Camera, a Darkness Plane and Light to the Scene"""
+    """Adds a Camera with specific settings to the Scene"""
     bl_idname = "camera.add"
     bl_label = "Add Camera"
     
@@ -477,7 +512,7 @@ class CAMERA_add(bpy.types.Operator):
         return {'FINISHED'}
 
 class CAMERA_remove(bpy.types.Operator):
-    """Add Camera, a Darkness Plane and Light to the Scene"""
+    """Deletes the Camera"""
     bl_idname = "camera.remove"
     bl_label = "Remove Camera"
     
@@ -487,23 +522,9 @@ class CAMERA_remove(bpy.types.Operator):
         dm_property.camera = None
         delete_hierarchy(camera)
         return{'FINISHED'}
-class CAMERA_zoom(bpy.types.Operator):
-    """Toggle Camera Orthographic Scale between 80 and 35"""
-    bl_idname = "camera.togglezoom"
-    bl_label = "Toggle Camera Zoom"
-    
-    scale : bpy.props.FloatProperty(min=10, max = 1000)
-
-    def execute(self, context):
-        dm_property = context.scene.dm_property
-        camera = dm_property.camera
-        dm_property.camera_zoom_toggle = not dm_property.camera_zoom_toggle
-        camera.data.lens = self.scale
-
-        return {'FINISHED'}
 
 class CAMERA_panning(bpy.types.Operator):
-    """Add Camera, a Darkness Plane and Light to the Scene"""
+    """Camera follows the viewport navigation"""
     bl_idname = "camera.pan"
     bl_label = "Camera panning"
 
@@ -520,7 +541,7 @@ class CAMERA_panning(bpy.types.Operator):
         return {'FINISHED'}
 
 class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
-    """Create Walls with Geometry Nodes"""
+    """Create Walls for casting shadow"""
     bl_idname = "mesh.geowall_add"
     bl_label = "Add Walls"
     def execute(self,context):
@@ -561,7 +582,7 @@ class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
         return{'FINISHED'}
 
 class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
-    """Create Walls with Geometry Nodes"""
+    """Create Pillars for casting shadows"""
     bl_idname = "mesh.pillar_add"
     bl_label = "Add Pillar"
     def execute(self,context):
@@ -587,7 +608,7 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         return{'FINISHED'}
 
 class MESH_Create_GreasePencil(bpy.types.Operator):
-    """Create Cave Roof for Light Shadow"""
+    """Create a new GreasePencil Object"""
     bl_idname = "mesh.gpencil_add"
     bl_label = "Add Grease Pencil"
 
@@ -599,6 +620,11 @@ class MESH_Create_GreasePencil(bpy.types.Operator):
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, gpencil)
         bpy.context.view_layer.objects.active = gpencil
         bpy.ops.gpencil.paintmode_toggle()
+        bpy.data.brushes["Pencil"].size = 200
+        bpy.data.brushes["Pencil"].gpencil_settings.pen_strength = 1
+        context.scene.tool_settings.gpencil_sculpt.lock_axis = 'AXIS_Z'
+
+
         return{'FINISHED'}
 
 class MESH_Create_Cave(bpy.types.Operator):
@@ -617,7 +643,7 @@ class MESH_Create_Cave(bpy.types.Operator):
         return{'FINISHED'}
 
 class ImportMapImage(bpy.types.Operator, ImportHelper):
-    """This appears in the tooltip of the operator and in the generated docs"""
+    """Import an Image as Background to the current floor"""
     bl_idname = "import_mesh.map_image"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Import Map Image"
 
@@ -631,6 +657,7 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
     )
 
     def execute(self, context):
+        dm_property = context.scene.dm_property
         image = bpy.data.images.load(self.filepath)
         x = image.size[0]
         y = image.size[1]
@@ -639,11 +666,14 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
         y= y / mean
         bpy.ops.mesh.primitive_plane_add(size=10, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
         map = context.object
+        
+        ground_obj = dm_property.groundlist.add()
+        ground_obj.obj = map
         map.dimensions = (x,y,0)
         bpy.ops.object.transform_apply(location=True, rotation=False, scale=True)
         map.name = "Cave"
         map.data.materials.append(CreateMapMaterial(self, context,image))
-        dm_property = context.scene.dm_property
+        
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             map)
         bpy.context.view_layer.objects.active = map
@@ -651,7 +681,7 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
         return{'FINISHED'}
 
 class AddWhiteMapImage(bpy.types.Operator):
-    """This appears in the tooltip of the operator and in the generated docs"""
+    """Adds a white Background to the current floor"""
     bl_idname = "add.white_map_image"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Add white Map"
 
@@ -660,8 +690,10 @@ class AddWhiteMapImage(bpy.types.Operator):
         bpy.ops.mesh.primitive_plane_add(size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, -0.2), )
         map = context.object
         map.name = "White_BG"
-        #map.data.materials.append(CreatePlayerMaterial(self, context,(1,1,1,1)))
         dm_property = context.scene.dm_property
+        ground_obj = dm_property.groundlist.add()
+        ground_obj.obj = map
+        
         addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
             map)
         map.hide_select =True
@@ -669,7 +701,7 @@ class AddWhiteMapImage(bpy.types.Operator):
         return{'FINISHED'}
 
 class AddGrid(bpy.types.Operator):
-    """This appears in the tooltip of the operator and in the generated docs"""
+    """Add a 5ft Grid, if it is already there the visibility will be toggled"""
     bl_idname = "add.grid"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Add grid"
 
@@ -677,45 +709,55 @@ class AddGrid(bpy.types.Operator):
     def execute(self, context):
 
         dm_property = context.scene.dm_property
-        bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.mesh.delete(type='ONLY_FACE')
-        bpy.ops.object.editmode_toggle()
-        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-        bpy.ops.object.convert(target='GPENCIL')
-        grid = context.object
-        
-        xValDrive = grid.driver_add("location", 0)
 
-        drvVar = xValDrive.driver.variables.new()
-        drvVar.name = 'xvar'
-        drvVar.type = 'TRANSFORMS'
-        drvVar.targets[0].id = dm_property.camera
-        drvVar.targets[0].transform_type = 'LOC_X'
-        xValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % drvVar.name
+        if dm_property.grid is None or  context.scene.objects.get(dm_property.grid.name) is None:
+            bpy.ops.mesh.primitive_grid_add(x_subdivisions=100, y_subdivisions=100, size=152.4, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.mesh.delete(type='ONLY_FACE')
+            bpy.ops.object.editmode_toggle()
+            bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+            bpy.ops.object.convert(target='GPENCIL')
+            bpy.context.object.show_in_front = True
+            grid = context.object
+            grid.name = "Grid"
 
-        yValDrive = grid.driver_add("location", 1)
+            
+            xValDrive = grid.driver_add("location", 0)
 
-        yVar = yValDrive.driver.variables.new()
-        yVar.name = 'yvar'
-        yVar.type = 'TRANSFORMS'
-        yVar.targets[0].id = dm_property.camera
-        yVar.targets[0].transform_type = 'LOC_Y'
-        yValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % yVar.name
+            drvVar = xValDrive.driver.variables.new()
+            drvVar.name = 'xvar'
+            drvVar.type = 'TRANSFORMS'
+            drvVar.targets[0].id = dm_property.camera
+            drvVar.targets[0].transform_type = 'LOC_X'
+            xValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % drvVar.name
 
-        grid.data.layers["Grid_Lines"].line_change = -20
-        grid.data.stroke_thickness_space = 'SCREENSPACE'
+            yValDrive = grid.driver_add("location", 1)
 
-        dm_property = context.scene.dm_property
+            yVar = yValDrive.driver.variables.new()
+            yVar.name = 'yvar'
+            yVar.type = 'TRANSFORMS'
+            yVar.targets[0].id = dm_property.camera
+            yVar.targets[0].transform_type = 'LOC_Y'
+            yValDrive.driver.expression = 'int(%s / 1.524) *1.524 ' % yVar.name
 
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
-            grid)
-        #grid.hide_select = True
-        grid.select_set(False)
+            grid.data.layers["Grid_Lines"].line_change = -20
+            grid.data.stroke_thickness_space = 'SCREENSPACE'
+
+            dm_property = context.scene.dm_property
+
+            # addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            #     grid)
+            addToCollection(self,context, "Camera", grid)
+            #grid.hide_select = True
+            grid.select_set(False)
+            grid.hide_select = True
+            dm_property.grid = grid
+        else:
+            dm_property.grid.hide_viewport = not dm_property.grid.hide_viewport
         return{'FINISHED'}
 
 class ConvertGPencilToWall(bpy.types.Operator):
-    """This appears in the tooltip of the operator and in the generated docs"""
+    """Convert GPencil Strokes to 3D Geometry Walls"""
     bl_idname = "add.gpencil_to_wall"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Convert GPencil to Wall"
 
@@ -748,7 +790,7 @@ def setTransparency(self, context,material, alpha):
     shaderMix_node.inputs[0].default_value = alpha
 
 class MESH_Setup_Map(bpy.types.Operator):
-    """Create Cave Roof for Light Shadow"""
+    """Adjusts the Backgroundimage to the right scale"""
     bl_idname = "mesh.map_scale"
     bl_label = "Setup Map"
 
@@ -778,7 +820,7 @@ class MESH_Setup_Map(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
 
 class LIGHT_Create_Torch(bpy.types.Operator):
-    """Create Torch Light"""
+    """Create a torch Light"""
     bl_idname = "light.torch_add"
     bl_label = "Add Torch"
 
@@ -805,7 +847,7 @@ class LIGHT_Create_Torch(bpy.types.Operator):
         return{'FINISHED'}
 
 class Window_new(bpy.types.Operator):
-    """Bla """
+    """Create a new Window, necessary for using a touchdevice"""
     bl_idname = "window.new"
     bl_label = "New Window"
 
@@ -813,19 +855,68 @@ class Window_new(bpy.types.Operator):
 
     def execute(self, context):
         bpy.ops.wm.window_new()
-        if self.touch_window:
-            context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
-            context.scene.dm_property.screen = bpy.context.screen
+        #if self.touch_window:
+        context.scene.dm_property.hwnd_id = windll.user32.GetForegroundWindow()
+        context.scene.dm_property.screen = bpy.context.screen
         #context.scene.touch_manager.rv3d = bpy.context.region_data
         bpy.context.area.ui_type = 'VIEW_3D'
         bpy.context.space_data.shading.type = 'RENDERED'
         bpy.context.space_data.overlay.show_overlays = False
         bpy.context.space_data.show_gizmo = False
+        bpy.context.space_data.show_region_header = False
+
         #bpy.ops.screen.screen_full_area(use_hide_panels=True)
         #Camera view
         area = next(area for area in bpy.context.screen.areas if area.type == 'VIEW_3D')
         area.spaces[0].region_3d.view_perspective = 'CAMERA'
         return {'FINISHED'}
+
+
+class Add_Remove_Obj_As_Ground(bpy.types.Operator):
+    """Marks Objects as "Ground" where player can stand on. Only necessary for Touch navigation"""
+    bl_idname = "add.ground"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Add ground"
+    
+    @classmethod
+    def poll(cls, context):
+        if len(context.selected_objects) == 0:
+            return False
+        else:
+            return True
+
+    def execute(self, context):
+        dm_property = context.scene.dm_property
+
+
+        def obj_in_groundlist(obj):
+            index = -1
+            for ground in dm_property.groundlist:
+                index +=1
+                if ground.obj == obj:
+                    yield index
+
+        
+        for obj in context.selected_objects:
+            if obj_in_objectlist(context.active_object, dm_property.groundlist):
+                for index in obj_in_groundlist(obj):
+                    dm_property.groundlist.remove(index)
+            else:
+                if obj.type == 'MESH':
+                    ground_obj = dm_property.groundlist.add()
+                    ground_obj.obj = obj
+        return {'FINISHED'}
+
+class LIGHT_Toggle_Day_and_Night(bpy.types.Operator):
+    """Togglebetween day and night lighting conditions"""
+    bl_idname = "light.daynight"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Toggle Day and Night"
+
+
+    def execute(self, context):
+
+        dm_property = context.scene.dm_property
+        dm_property.day_night = not dm_property.day_night 
+        return{'FINISHED'}
 
 
 # Annotation properties
@@ -855,20 +946,20 @@ class TOPBAR_PT_annotation_layers(bpy.types.Panel, AnnotationDataPanel):
 
 class TOUCH_OT_use_touch_operator(bpy.types.Operator):
     bl_idname = "touch.use_touch"
-    bl_label = "New Touchscreen Window"
-    bl_description = "This operator uses starts the pygame modal operator."
+    bl_label = "Use Touchscreen"
+    bl_description = "Use a Touchdevice for general navigation and controlling the players."
     bl_options = {"REGISTER"}
 
     @classmethod
     def poll(self, context):
-        if pygame_installed:
+        if pygame_installed and context.scene.dm_property.hwnd_id is not -1:
             return True
         else:
             return False 
 
     def execute(self, context):
-        if not context.scene.dm_property.touch_active:
-            bpy.ops.window.new(touch_window = True)
+        # if not context.scene.dm_property.touch_active:
+        #     bpy.ops.window.new(touch_window = True)
         bpy.ops.touch.move('INVOKE_DEFAULT')
         return {"FINISHED"}
 
@@ -886,7 +977,6 @@ blender_classes = [
     SCENE_Grid_Setup,
     CAMERA_add,
     CAMERA_remove,
-    CAMERA_zoom,
     CAMERA_panning,
     Window_new,
     MESH_Create_GeometryNode_Walls,
@@ -896,7 +986,9 @@ blender_classes = [
     ConvertGPencilToWall,
     AddWhiteMapImage,
     AddGrid,
+    Add_Remove_Obj_As_Ground,
     LIGHT_Create_Torch,
+    LIGHT_Toggle_Day_and_Night,
     TOPBAR_PT_annotation_layers,
     TOUCH_OT_use_touch_operator,
     VIEW3D_PT_grease_pencil,

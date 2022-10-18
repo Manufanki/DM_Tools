@@ -23,6 +23,7 @@ class DM_PT_SceneSetupPanel(bpy.types.Panel):
             col.operator("scene.setup", icon ="WORLD")
             col.prop(context.scene.unit_settings, 'system')
             col.operator("scene.grid_scale", text="Set 5ft Grid")
+            col.operator("add.grid", icon="MESH_GRID")
             #col.prop(context.scene.tool_settings, "use_snap")
 
 class DM_PT_CameraSetupPanel(bpy.types.Panel):
@@ -42,18 +43,13 @@ class DM_PT_CameraSetupPanel(bpy.types.Panel):
                 col.operator("camera.add", icon ='OUTLINER_DATA_CAMERA')
             else:
                 if dm_property.camera_pan_toggle:
-                    col.operator("camera.pan",text ="Panning active", icon="VIEW_PAN", emboss= not dm_property.camera_pan_toggle)
+                    col.operator("camera.pan",text ="Panning active", icon="CANCEL")
                 else:
-                    col.operator("camera.pan",text ="Panning", icon="VIEW_PAN", emboss= not dm_property.camera_pan_toggle)
+                    col.operator("camera.pan",text ="Panning", icon="VIEW_PAN")
                 col.operator("view3d.view_camera",icon='OUTLINER_DATA_CAMERA')
-                
-                pan_row = col.split(factor=0.2)
-                if dm_property.camera_zoom_toggle:
-                    pan_row.operator("camera.togglezoom", icon ='ZOOM_IN',text="").scale = dm_property.camera_zoom_out
-                    pan_row.prop(dm_property, "camera_zoom_in", text="Zoom")
-                else:
-                    pan_row.operator("camera.togglezoom", icon ='ZOOM_OUT',text="").scale = dm_property.camera_zoom_in
-                    pan_row.prop(dm_property, "camera_zoom_out", text="Zoom")
+
+                col.prop(dm_property, "camera_zoom", text="Zoom")
+
                 #pan_row.prop(dm_property,"camera_pan_toggle",text="Active")
                 col.operator("camera.remove", icon ='PANEL_CLOSE')
      
@@ -69,7 +65,10 @@ class DM_PT_LightSetupPanel(bpy.types.Panel):
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
             col = layout.column()
-            col.prop(dm_property, 'day_night',text = "Player can see without darkvision")
+            if not dm_property.day_night:
+                col.operator('light.daynight',icon ="LIGHT_SUN",text = "Day")
+            else:
+                 col.operator('light.daynight',icon ="SHADING_SOLID",text = "Night")
             # if dm_property.global_Sun != None:
             #     col.prop(dm_property.global_Sun, 'diffuse_factor',text = "Sun Light")
 
@@ -106,8 +105,8 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
 
             i = 0
             for char in dm_property.characterlist:
-                if bpy.context.object == char.character: 
-                    player_property = char.character.player_property
+                if bpy.context.object == char.obj: 
+                    player_property = char.obj.player_property
                     layout.prop(player_property, "name")
                     if player_property.is_npc == False:
                         layout.prop(player_property, "darkvision", text="Darkvision")
@@ -117,8 +116,9 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                     else:
                         list_row.operator("player.distance_toggle",text ="",  icon="HIDE_OFF")
                     list_row.label(text="Distance Measure")
-                    list_row.prop(player_property, "move_distance", text="")
-                    list_row.label(text=GetCurrentUnits()[0])
+                    split = list_row.split(factor=0.9)
+                    split.prop(player_property, "move_distance", text="")
+                    split.label(text=GetCurrentUnits()[0])
 
                     list1_row = layout.row()
                     if player_property.torch.hide_get():
@@ -128,53 +128,13 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                         list1_row.operator("player.torch", text="", icon="HIDE_OFF")
                         list1_row.label(text="Use Torch")
                         list1_row.prop(player_property.torch.data, "cutoff_distance", text="")
+
+                    list2_col = layout.column()
+                    list2_col.label(text="Player Stats")
+                    list2_col.prop(player_property,"player_height")
+                    list2_col.prop(player_property,"health_points")
+                    list2_col.prop(player_property,"armor_class")
                     break
-
-class DM_PT_PlayerStatsPanel(bpy.types.Panel):
-    """Creates a Panel for all Player Settings"""
-    bl_label = "Player Stats"
-    bl_idname = "PT_ui_player_stats"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'DM Tools'
-    bl_parent_id = 'PT_ui_player_list'
-
-    def draw(self, context):
-        layout = self.layout
-        dm_property = context.scene.dm_property
-        col = layout.column()
-        row = layout.row()
-
-        i = 0
-        for char in dm_property.characterlist:
-            if bpy.context.object == char.character: 
-                player_property = char.character.player_property
-                list2_col = layout.column()
-                list2_col.prop(player_property,"player_height")
-                list2_col.prop(player_property,"health_points")
-                list2_col.prop(player_property,"armor_class")
-                list2_col.prop(player_property,"attack_bonus")
-                list2_row = layout.row()
-                col1 = list2_row.column()
-                col1.label(text="STR")
-                col1.prop(player_property,"strength", text= "")
-                col2 = list2_row.column()
-                col2.label(text="DEX")
-                col2.prop(player_property,"dexterity", text= "")
-                col3 = list2_row.column()
-                col3.label(text="CON")
-                col3.prop(player_property,"constitution", text= "")
-                col4 = list2_row.column()
-                col4.label(text="INT")
-                col4.prop(player_property,"intelligence", text= "")
-                col5 = list2_row.column()
-                col5.label(text="WIS")
-                col5.prop(player_property,"wisdom", text= "")
-                col6 = list2_row.column()
-                col6.label(text="CHA")
-                col6.prop(player_property,"charisma", text= "")
-                break
-
 class DM_PT_AddSetupPanel(bpy.types.Panel):
     bl_label = "Map"
     bl_idname = "_PT_MapSetupPanel"
@@ -254,7 +214,6 @@ class DM_PT_AddGroundPanel(bpy.types.Panel):
                     col.label(text="Add Map")
                     col.operator("import_mesh.image_plane", icon="IMAGE_DATA")
                     col.operator("add.white_map_image", icon="MESH_GRID")
-                    col.operator("add.grid", icon="MESH_GRID")
                     col.operator("mesh.gpencil_add", icon = "GREASEPENCIL")
                     col.operator("add.gpencil_to_wall", icon="OUTLINER_OB_GREASEPENCIL")
                     #col.operator("mesh.map_scale", icon="SETTINGS")    
@@ -276,10 +235,10 @@ class DM_PT_AddWallsPanel(bpy.types.Panel):
                     col = layout.column()
                     col.operator("mesh.geowall_add", icon="MOD_BUILD")
                     col.operator("mesh.pillar_add",icon="MESH_CYLINDER") 
-                    col.operator("light.torch_add",icon="LIGHT_POINT").reveal = False   
+                    #col.operator("light.torch_add",icon="LIGHT_POINT").reveal = False   
 
 class DM_PT_WindowSetupPanel(bpy.types.Panel):
-    bl_label = "Window"
+    bl_label = "Window and Touch"
     bl_idname = "_PT_WindowSetupPanel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -295,11 +254,15 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
             if dm_property.touch_active:
-                col.prop(dm_property, "touchwindow_active", text="Activate Touch")
-                col.operator("touch.use_touch", text="Close Touch")
+                col.operator("touch.use_touch",icon ="CANCEL", text="Close Touch")
             else:
                 col.prop(dm_property, "touch_update_rate", text="Touch FPS:")
-                col.operator("touch.use_touch")
+                col.operator("touch.use_touch",icon ="PROP_OFF")
+            col.label(text="Touch setting")
+            if obj_in_objectlist(context.active_object, dm_property.groundlist):
+                col.operator("add.ground",icon ="REMOVE", text="Remove Ground")
+            else:
+                col.operator("add.ground",icon ="ADD", text="Add Ground")
             
             
 
@@ -310,7 +273,7 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname):
         ob = data
-        slot = item.character.player_property
+        slot = item.obj.player_property
         ma = slot.name
         # draw_item must handle the three layout types... Usually 'DEFAULT' and 'COMPACT' can share the same code.
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
@@ -378,9 +341,10 @@ class DM_UL_Floorlist(bpy.types.UIList):
 #region operator 
 
 class PLAYER_List_Button(bpy.types.Operator):
+    """List Operations"""
     bl_idname = "list.list_op"
-    bl_label = "Action List Operator"
-    bl_description = ""
+    bl_label = "Player List Operator"
+    bl_description = "List Operations"
     bl_options = {"REGISTER", "UNDO"}
 
     menu_active: bpy.props.IntProperty(name="Button Index")
@@ -430,7 +394,7 @@ class PLAYER_List_Button(bpy.types.Operator):
 		# Remove Item
         if self.menu_active == 7:
             if index >= 0 and index < len(char_list):
-                player = char_list[index].character
+                player = char_list[index].obj
                 player.player_property.distance_sphere.parent = player
                 try:
                     player.player_property.player_coll.children.unlink(player.player_property.light_coll)
@@ -446,7 +410,7 @@ class PLAYER_List_Button(bpy.types.Operator):
         if self.menu_active == 8:
             initiative_list = {}
             for i in range(len(char_list)):
-                initiative_list[i]  =  char_list[i].character.player_property.list_index
+                initiative_list[i]  =  char_list[i].obj.player_property.list_index
 
 
             initiative_list = dict(sorted(initiative_list.items(), key=lambda item: item[1],reverse=True))
@@ -479,9 +443,10 @@ class PLAYER_List_Button(bpy.types.Operator):
         return {"FINISHED"}      
 
 class Map_List_Button(bpy.types.Operator):
+    """List Operations"""
     bl_idname = "list.map_op"
-    bl_label = "Action List Operator"
-    bl_description = ""
+    bl_label = "Map List Operator"
+    bl_description = "List Operations"
     bl_options = {"REGISTER", "UNDO"}
 
     menu_active: bpy.props.IntProperty(name="Button Index")
@@ -538,9 +503,10 @@ class Map_List_Button(bpy.types.Operator):
         return {"FINISHED"}      
 
 class Floor_List_Button(bpy.types.Operator):
+    """List Operations"""
     bl_idname = "list.floor_op"
-    bl_label = "Action List Operator"
-    bl_description = ""
+    bl_label = "Floor List Operator"
+    bl_description = "List Operations"
     bl_options = {"REGISTER", "UNDO"}
 
     menu_active: bpy.props.IntProperty(name="Button Index")
@@ -597,8 +563,9 @@ class Floor_List_Button(bpy.types.Operator):
         return {"FINISHED"}      
 
 class ChooseItemOperator(bpy.types.Operator):
+    """Select an existing Map from the List"""
     bl_idname = "example.choose_item"
-    bl_label = "Choose item"
+    bl_label = "Choose Map"
     bl_options = {'INTERNAL'}
     bl_property = "enum"
 
@@ -632,7 +599,6 @@ blender_classes = [
     DM_PT_CameraSetupPanel,
     DM_PT_LightSetupPanel,
     DM_PT_PlayerListPanel,
-    DM_PT_PlayerStatsPanel,
     DM_PT_AddSetupPanel,
     DM_PT_AddGroundPanel,
     DM_PT_AddWallsPanel,

@@ -9,7 +9,6 @@ bl_info = {
     "category" : "",
 }
 
-import this
 import bpy
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
@@ -35,7 +34,7 @@ try:
 except ModuleNotFoundError as e:
     print(e)
     pygame_installed = False
-    #print("pygame is not installed")
+    print("touch could not loaded")
 from . properties import *
 from . main_ops import *
 from . utils import *
@@ -142,7 +141,12 @@ def install_and_import_module(module_name, package_name=None, global_name=None):
     environ_copy = dict(os.environ)
     environ_copy["PYTHONNOUSERSITE"] = "1"
 
+
+
     subprocess.run([sys.executable, "-m", "pip", "install", package_name], check=True, env=environ_copy)
+    # if package_name == "pywin32":
+    #     print("POSTINSTALL")
+        #subprocess.run([sys.executable, "3.3/python/Scripts/" "pywin32_postinstall.py", "-install", ], check=True, env=environ_copy)
 
     # The installation succeeded, attempt to import the module again
     import_module(module_name, global_name)
@@ -156,7 +160,7 @@ class TOUCH_PT_warning_panel(bpy.types.Panel):
 
     @classmethod
     def poll(self, context):
-        return not dependencies_installed
+        return dependencies_installed
 
     def draw(self, context):
         layout = self.layout
@@ -217,30 +221,35 @@ class TOUCH_OT_install_dependencies(bpy.types.Operator):
 class TOUCH_preferences(bpy.types.AddonPreferences):
     bl_idname = __name__
 
+
     def draw(self, context):
         layout = self.layout
+        
         layout.operator(TOUCH_OT_install_dependencies.bl_idname, icon="CONSOLE")
 
 
 blender_classes = [
-    #TOUCH_PT_warning_panel,
+    TOUCH_PT_warning_panel,
     TOUCH_OT_install_dependencies,
     TOUCH_preferences,
 ]
 
-# Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
-def register():
-    global dependencies_installed
-    dependencies_installed = False
 
+def check_all_modules():
     try:
         for dependency in dependencies:
             import_module(module_name=dependency.module, global_name=dependency.name)
-        dependencies_installed = True
+        return True
     except ModuleNotFoundError as e:
         # Don't register other panels, operators etc.
         print(e)
-        #return
+        return False
+
+# Register and add to the "file selector" menu (required to use F3 search "Text Import Operator" for quick access)
+def register():
+    global dependencies_installed
+
+    dependencies_installed = check_all_modules()
 
     if pygame_installed == True:
         print("TOUCHTRACER REGISTER")

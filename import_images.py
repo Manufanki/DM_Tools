@@ -978,6 +978,7 @@ class IMPORT_IMAGE_OT_to_plane(Operator, AddObjectHelper):
 
         if self.shader == 'PRINCIPLED':
             core_shader = node_tree.nodes.new('ShaderNodeBsdfPrincipled')
+            core_shader.inputs['Specular'].default_value = 0.0
         elif self.shader == 'SHADELESS':
             core_shader = get_shadeless_node(node_tree)
         elif self.shader == 'EMISSION':
