@@ -34,6 +34,8 @@ class ObjectPointerProperties(bpy.types.PropertyGroup):
     obj : bpy.props.PointerProperty(type=bpy.types.Object)
 class FloatPointerProperties(bpy.types.PropertyGroup):
     value : bpy.props.FloatProperty()
+class FloatVectorPointerProperties(bpy.types.PropertyGroup):
+    value : bpy.props.FloatVectorProperty()
 
 class PlayerProperties(bpy.types.PropertyGroup):
 
@@ -77,6 +79,9 @@ class PlayerProperties(bpy.types.PropertyGroup):
         distance += 1.5
         self.spot_night.data.cutoff_distance = distance
         self.point_night.data.cutoff_distance = distance
+
+    def update_init(self, context):
+        bpy.ops.list.list_op(menu_active = 8)
 
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     light_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
@@ -142,8 +147,14 @@ class PlayerProperties(bpy.types.PropertyGroup):
     description="index",
     default= 0,
     min=0,
+    update=update_init
     )
 
+    notes : bpy.props.StringProperty(
+    name="notes",
+    description="notes",
+    default= "",
+    )
 
     health_points : bpy.props.IntProperty(
     name="health_points",
@@ -157,7 +168,8 @@ class PlayerProperties(bpy.types.PropertyGroup):
     default= 10,
     min=0,
     )
-
+    
+    positionlist : bpy.props.CollectionProperty(type = FloatVectorPointerProperties)
     rotationlist : bpy.props.CollectionProperty(type = FloatPointerProperties)
     player : bpy.props.PointerProperty(type=bpy.types.Object)
 
@@ -202,6 +214,7 @@ class DMProperties(bpy.types.PropertyGroup):
     screen : bpy.props.PointerProperty(type=bpy.types.Screen)
     hwnd_id : bpy.props.IntProperty(default=-1)
 
+    touch_navigation : bpy.props.BoolProperty()
     touch_active : bpy.props.BoolProperty()
     touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
 

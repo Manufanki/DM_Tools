@@ -2,6 +2,8 @@
 import bpy
 import random
 import colorsys
+import json
+
 from bl_ui.properties_grease_pencil_common import (
     AnnotationDataPanel,
     AnnotationOnionSkin,
@@ -16,7 +18,7 @@ from collections import namedtuple
 
 try:
     from .touch import register
-    print("Touch is inported")
+    print("Touch is imported")
     pygame_installed = True
 except ModuleNotFoundError as e:
     print(e)
@@ -78,7 +80,9 @@ class PLAYER_add(bpy.types.Operator):
 
     tmp_is_npc : bpy.props.BoolProperty(name ="NPC", default= False)
     tmp_name : bpy.props.StringProperty(name ="Enter Name", default= "player")
-
+    tmp_ac : bpy.props.IntProperty(name ="Armor Class", default= 10)
+    tmp_hp : bpy.props.IntProperty(name ="Hit Poins", default= 10)
+    tmp_notes : bpy.props.StringProperty(name ="Notes", default= "")
 
     def invoke(self, context, event):
                 
@@ -118,6 +122,10 @@ class PLAYER_add(bpy.types.Operator):
         player_pointer.obj = player
 
         player_property.list_index = dm_prop.characterlist_data_index
+
+        player_property.health_points = self.tmp_hp
+        player_property.armor_class = self.tmp_ac
+        player_property.notes = self.tmp_notes
         player_property.name = self.tmp_name
         player_property.is_npc = self.tmp_is_npc
         if self.tmp_is_npc == True:
@@ -293,8 +301,6 @@ class PLAYER_update(bpy.types.Operator):
         else:
             collection = bpy.data.collections.get("Player")
             update_players(self,context,collection)
-
-        bpy.ops.list.list_op(menu_active = 8)
         return {'FINISHED'}
 
 class MAP_add(bpy.types.Operator):
@@ -917,6 +923,7 @@ class LIGHT_Toggle_Day_and_Night(bpy.types.Operator):
         dm_property = context.scene.dm_property
         dm_property.day_night = not dm_property.day_night 
         return{'FINISHED'}
+
 
 
 # Annotation properties

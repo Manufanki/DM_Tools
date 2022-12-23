@@ -134,6 +134,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
                     list2_col.prop(player_property,"player_height")
                     list2_col.prop(player_property,"health_points")
                     list2_col.prop(player_property,"armor_class")
+                    list2_col.prop(player_property,"notes")
                     break
 class DM_PT_AddSetupPanel(bpy.types.Panel):
     bl_label = "Map"
@@ -254,6 +255,7 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
             if dm_property.touch_active:
+                col.prop(dm_property, "touch_navigation", text="Use Touch Navigaion:")
                 col.operator("touch.use_touch",icon ="CANCEL", text="Close Touch")
             else:
                 col.prop(dm_property, "touch_update_rate", text="Touch FPS:")
@@ -266,7 +268,7 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             
             
 
-
+#endregion
 #region lists
 
 class DM_UL_Playerlist_player(bpy.types.UIList):
@@ -337,7 +339,7 @@ class DM_UL_Floorlist(bpy.types.UIList):
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon_value=icon)
-
+#endregion
 #region operator 
 
 class PLAYER_List_Button(bpy.types.Operator):
@@ -592,7 +594,7 @@ class ChooseItemOperator(bpy.types.Operator):
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
         return {"FINISHED"}
-
+#endregion
 
 blender_classes = [
     DM_PT_SceneSetupPanel,
