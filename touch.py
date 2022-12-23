@@ -248,14 +248,20 @@ def update_player_pos(context,id,touch_pos):
 
     for char in dm_property.characterlist:
         if char.obj.player_property.touch_id == id:
-
+            
             last_touch_pos = char.obj.player_property.touch_pos
             last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
 
-            touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
+            #Pinch to zoom
+            #last_touch_pos = Vector((char.obj.location[0], char.obj.location[1]))
+            #touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
+            
             dir = best_hit_world - char.obj.location 
+            #Slide to zoom
+            touch_distance = np.linalg.norm(dir)
+            
             forward = Vector((0,1,0))
-            if touch_distance > 3:
+            if touch_distance > 0:
                 rot = angle_between(forward, dir)
                 #rot = round(rot / math.pi *4) *(math.pi /4)
 
@@ -291,12 +297,15 @@ def update_player_pos(context,id,touch_pos):
 
 
 
-def update_camera_pos(context,id,touch_pos):
+def update_camera_pos(self, context,id,touch_pos):
 
         dm_property = context.scene.dm_property
 
         touchlist = dm_property.touchlist
         index = 0
+
+        if dm_property.touch_navigation == False:
+            return
 
         if len(touchlist) < 2:
             return
@@ -311,31 +320,43 @@ def update_camera_pos(context,id,touch_pos):
         
         if index == -1:
             return
-            
+        
+
+        touch0_start = touchlist[0].touch_start
+        touch0_start = Vector((touch0_start[0], touch0_start[1]))
+
+        touch1_start = touchlist[1].touch_start
+        touch1_start = Vector((touch1_start[0], touch1_start[1]))
+
         if  touchlist[1].zoom_value == 0:
-            touch0_start = touchlist[0].touch_start
-            touch0_start = Vector((touch0_start[0], touch0_start[1]))
+            #touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
+            touchlist[1].zoom_value = (touch0_start[1] + touch1_start[1]) /2
 
-            touch1_start = touchlist[1].touch_start
-            touch1_start = Vector((touch1_start[0], touch1_start[1]))
+        
+        if touch0_start[0] < (self.width/10) and touch1_start[0] < (self.width/10):
 
-            touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
+            touch0_pos = touchlist[0].touch_pos
+            touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
 
-        touch0_pos = touchlist[0].touch_pos
-        touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
+            touch1_pos = touchlist[1].touch_pos
+            touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
 
-        touch1_pos = touchlist[1].touch_pos
-        touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
 
-        zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
 
-        new_zoom_value =  zoomvalue - touchlist[1].zoom_value
-        touchlist[1].zoom_value = zoomvalue
-        new_zoom_value = new_zoom_value *0.075
+            #zoomvalue = float(np.linalg.norm(touch0_start - touch0_pos))
+            zoomvalue = (touch0_pos[1] + touch1_pos[1]) /2
+            new_zoom_value =  touchlist[1].zoom_value - zoomvalue  
+           
+            touchlist[1].zoom_value = zoomvalue
+            new_zoom_value = new_zoom_value *0.075
+            print(new_zoom_value)
 
-        dm_property.zoom_value += new_zoom_value
+            dm_property.zoom_value += new_zoom_value
 
-        threshold = 5
+            print( dm_property.zoom_value)
+
+
+        threshold = 0
         if abs(dm_property.zoom_value_backup - dm_property.zoom_value) > threshold:
             if dm_property.zoom_value < dm_property.zoom_value_backup :
                 threshold = -threshold
@@ -434,7 +455,7 @@ class TOUCH_OT_move(bpy.types.Operator):
                         navigation_touch = False
                         break
                 if navigation_touch:
-                    update_camera_pos(bpy.context,e.finger_id, touch_pos)
+                    update_camera_pos(self, bpy.context,e.finger_id, touch_pos)
             elif e.type == pg.FINGERUP:
                 for char in dm_property.characterlist:
                     if char.obj.player_property.touch_id == e.finger_id:
