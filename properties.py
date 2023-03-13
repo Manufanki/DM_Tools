@@ -2,10 +2,24 @@ import bpy
 
 from . utils import *
 #region Properties
+
+
+class ObjectPointerProperties(bpy.types.PropertyGroup):
+    obj : bpy.props.PointerProperty(type=bpy.types.Object)
+class FloatPointerProperties(bpy.types.PropertyGroup):
+    value : bpy.props.FloatProperty()
+class FloatVectorPointerProperties(bpy.types.PropertyGroup):
+    value : bpy.props.FloatVectorProperty()
+
 class FloorPointerProperties(bpy.types.PropertyGroup):
     floor : bpy.props.PointerProperty(type=bpy.types.Collection)
     name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.floor))
     annotation : bpy.props.PointerProperty(type=bpy.types.GreasePencil)
+    characterlist_data_index : bpy.props.IntProperty(
+    )
+    characterlist : bpy.props.CollectionProperty(type = ObjectPointerProperties)
+
+
 class MapPointerProperties(bpy.types.PropertyGroup):
     map : bpy.props.PointerProperty(type=bpy.types.Collection)
     name : bpy.props.StringProperty(update =lambda s, c: update_collection_name(s, c, s.map))
@@ -30,21 +44,13 @@ class TouchPointerProperties(bpy.types.PropertyGroup):
     default=(0, 0),
     )
 
-class ObjectPointerProperties(bpy.types.PropertyGroup):
-    obj : bpy.props.PointerProperty(type=bpy.types.Object)
-class FloatPointerProperties(bpy.types.PropertyGroup):
-    value : bpy.props.FloatProperty()
-class FloatVectorPointerProperties(bpy.types.PropertyGroup):
-    value : bpy.props.FloatVectorProperty()
-
 class PlayerProperties(bpy.types.PropertyGroup):
 
     def update_touch_active(self, context):
-
         if self.touch_id != -1:
             self.selection_sphere.hide_set(False)
         else:
-           self.selection_sphere.hide_set(True)
+            self.selection_sphere.hide_set(True)
 
 
     def update_player_height(self, context):
@@ -72,6 +78,17 @@ class PlayerProperties(bpy.types.PropertyGroup):
         distance += 1.5
         self.distance_sphere.dimensions = (distance, distance, distance)
 
+    def update_distance_toggle(self,context):
+
+        if self.distance_toggle:
+            self.distance_sphere.parent = None
+        else:
+            self.distance_sphere.parent = self.player
+
+        self.distance_sphere.hide_set(not self.distance_toggle)
+        loc = self.player.location
+        self.distance_sphere.location = (loc.x, loc.y, loc.z + 1)
+
     def update_darkvision(self,context):
         unitinfo = GetCurrentUnits()
         unit_dist = self.darkvision
@@ -82,6 +99,9 @@ class PlayerProperties(bpy.types.PropertyGroup):
 
     def update_init(self, context):
         bpy.ops.list.list_op(menu_active = 8)
+
+    def update_torch(self, context):
+         self.torch.hide_set(not self.torch_toggle)
 
     player_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
     light_coll : bpy.props.PointerProperty(type= bpy.types.Collection)
@@ -94,7 +114,13 @@ class PlayerProperties(bpy.types.PropertyGroup):
         max = 100,
         update=update_move_distance
     )
+    distance_toggle : bpy.props.BoolProperty(
+        update=update_distance_toggle
+    )
 
+    torch_toggle : bpy.props.BoolProperty(
+        update=update_torch
+    )
     player_id : bpy.props.IntProperty( default = -1)
 
     touch_id : bpy.props.IntProperty(
@@ -106,6 +132,7 @@ class PlayerProperties(bpy.types.PropertyGroup):
         size=2,
         default=(0, 0),
     )
+    active_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     selection_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     distance_sphere : bpy.props.PointerProperty(type=bpy.types.Object)
     torch : bpy.props.PointerProperty(type=bpy.types.Object)
@@ -146,7 +173,6 @@ class PlayerProperties(bpy.types.PropertyGroup):
     name="index",
     description="index",
     default= 0,
-    min=0,
     update=update_init
     )
 
@@ -175,13 +201,30 @@ class PlayerProperties(bpy.types.PropertyGroup):
 
 class DMProperties(bpy.types.PropertyGroup):
 
-
+    def update_active_char(self,context):
+        for char in self.characterlist:
+            if self.active_character == char.obj and self.use_round_order:
+                char.obj.player_property.active_sphere.hide_set(False)
+            else:
+                char.obj.player_property.active_sphere.hide_set(True) 
+  
     is_setup : bpy.props.BoolProperty(default=False)
+
+    active_map_index :  bpy.props.IntProperty(default=-1)
+    active_floor_index :  bpy.props.IntProperty(default=-1)
 
     characterlist_data_index : bpy.props.IntProperty(
         update=selectCharacter
     )
     characterlist : bpy.props.CollectionProperty(type = ObjectPointerProperties)
+    active_character : bpy.props.PointerProperty(type=bpy.types.Object,
+    update=update_active_char)
+    round_index : bpy.props.IntProperty(
+        default=0,
+        )
+    use_round_order :bpy.props.BoolProperty(
+    update=update_active_char)
+
     groundlist : bpy.props.CollectionProperty(type = ObjectPointerProperties)
 
     maplist_data_index : bpy.props.IntProperty(
@@ -230,11 +273,12 @@ class DMProperties(bpy.types.PropertyGroup):
 
 
 blender_classes = [
+    ObjectPointerProperties,
     FloatPointerProperties,
+    FloatVectorPointerProperties,
     PlayerProperties,    
     FloorPointerProperties,
     MapPointerProperties,
-    ObjectPointerProperties,
     TouchPointerProperties,
     DMProperties,
     ]

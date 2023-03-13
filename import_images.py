@@ -1036,7 +1036,7 @@ class IMPORT_IMAGE_OT_to_plane(Operator, AddObjectHelper):
         self.align_plane(context, plane)
 
         dm_property = context.scene.dm_property
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             plane)
 
         return plane

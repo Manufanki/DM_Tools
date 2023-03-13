@@ -30,47 +30,6 @@ from .ui import *
 from .import_images import *
 
 
-#endregion Methods     
-
-#region Operatior
-class PLAYER_Distance_Button(bpy.types.Operator):
-    bl_idname = "player.distance_toggle"
-    bl_label = "Toggle Visibility of Distance Circle"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    @classmethod
-    def poll(cls, context):
-        if context.object is None:
-            return False
-        else:
-            return True
-    def execute(self, context):
-
-        if context.object is None:
-            return {"FINISHED"} 
-        if context.object.player_property.distance_sphere.hide_get():
-            context.object.player_property.distance_sphere.parent = None
-            context.object.player_property.distance_sphere.hide_set(False)
-        else:
-            context.object.player_property.distance_sphere.parent = context.object
-            context.object.player_property.distance_sphere.hide_set(True)
-        loc = context.object.location
-        context.object.player_property.distance_sphere.location = (loc.x, loc.y, loc.z + 1)
-        return {"FINISHED"} 
-
-class PLAYER_Torch_Button(bpy.types.Operator):
-    bl_idname = "player.torch"
-    bl_label = "Toggle Visibility of Torch Light"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        if context.object.player_property.torch.hide_get():
-            context.object.player_property.torch.hide_set(False)
-        else:
-            context.object.player_property.torch.hide_set(True)
-        return {"FINISHED"} 
 
 class PLAYER_add(bpy.types.Operator):
     "Add Player Mesh and Lights to the Scene"
@@ -117,11 +76,14 @@ class PLAYER_add(bpy.types.Operator):
         player.data.vertices[0].co.y += 0.3
         player.data.vertices[1].co.y += 0.3
         player_property.player = player
-
-        player_pointer = dm_prop.characterlist.add()
+        
+        list_owner = dm_prop
+        if self.tmp_is_npc == True:
+             list_owner = get_current_floor(dm_prop)
+        player_pointer = list_owner.characterlist.add()
         player_pointer.obj = player
 
-        player_property.list_index = dm_prop.characterlist_data_index
+        player_property.list_index = list_owner.characterlist_data_index
 
         player_property.health_points = self.tmp_hp
         player_property.armor_class = self.tmp_ac
@@ -165,17 +127,32 @@ class PLAYER_add(bpy.types.Operator):
         selection_sphere.name = "Selection Sphere"
         selection_sphere.data.stroke_thickness_space = 'SCREENSPACE'
 
+        bpy.ops.mesh.primitive_circle_add(vertices=32, radius= .05, enter_editmode=False, align='WORLD', location=(0, 0, 1), scale=(1, 1, 1))
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        bpy.ops.object.convert(target='GPENCIL')    
+        active_sphere = context.object
+        active_sphere.data.pixel_factor = 0.1
+        active_sphere.active_material.grease_pencil.show_fill = False
+        active_sphere.active_material.grease_pencil.color = (1,1,1,1)
+        active_sphere.data.layers[0].opacity = 0.966667
+        active_sphere.data.layers[0].blend_mode = 'DIVIDE'
+        #active_sphere.active_material.grease_pencil.fill_color = (tmp_player_color[0], tmp_player_color[1], tmp_player_color[2], .1)
+        active_sphere.data.layers[0].use_lights = False
+        active_sphere.data.layers[0].line_change = 70
+        active_sphere.show_in_front = True  
+        active_sphere.parent = player
+        active_sphere.name = "Active Sphere"
+        active_sphere.data.stroke_thickness_space = 'SCREENSPACE'
 
 
-
-
+        player_property.active_sphere = active_sphere
         player_property.selection_sphere = selection_sphere
         player_property.distance_sphere = distance_sphere
         player_property.move_distance = player_property.move_distance
         player_property.player_color = tmp_player_color
         component_list.append(distance_sphere)
         component_list.append(selection_sphere)
-
+        component_list.append(active_sphere) 
 
         
 
@@ -249,15 +226,20 @@ class PLAYER_add(bpy.types.Operator):
 
         for obj in light_list:
             player_property.light_coll = addToCollection(self, context, player.name + "_light", obj)
-                
-        if bpy.data.collections.get("Player") is None:
-            collection = bpy.data.collections.new("Player")
-            bpy.context.scene.collection.children.link(collection)
-            collection.children.link(player_property.player_coll)
 
-        else:
-            collection = bpy.data.collections.get("Player")   
-            collection.children.link(player_property.player_coll)
+
+        if self.tmp_is_npc == True:
+            collection = get_current_floor(dm_prop).floor 
+            collection.children.link(player_property.player_coll)  
+        else:           
+            if bpy.data.collections.get("Player") is None:
+                collection = bpy.data.collections.new("Player")
+                bpy.context.scene.collection.children.link(collection)
+                collection.children.link(player_property.player_coll)
+
+            else:
+                collection = bpy.data.collections.get("Player")   
+                collection.children.link(player_property.player_coll)
 
         player_property.player_coll.children.link( player_property.light_coll)
         if bpy.context.scene.collection.children.get(player_property.player_coll.name):
@@ -283,10 +265,14 @@ class PLAYER_add(bpy.types.Operator):
             player_property.point_night = pointDark
         distance_sphere.hide_select = True
         distance_sphere.hide_set(True)
-        distance_sphere.hide_select = True
+        selection_sphere.hide_select = True
         selection_sphere.hide_set(True)
+        active_sphere.hide_select = True
+        active_sphere.hide_set(True)
         bpy.context.view_layer.objects.active = player
         player.select_set(True)
+
+        update_players(self,context)
         return {'FINISHED'}
 class PLAYER_update(bpy.types.Operator):
     """Reloads all Players and NPCs"""
@@ -294,13 +280,7 @@ class PLAYER_update(bpy.types.Operator):
     bl_label = "Update players"
     
     def execute(self, context):
-        dm_property = context.scene.dm_property
-        if bpy.data.collections.get("Player") is None:
-            collection = bpy.data.collections.new("Player")
-            bpy.context.scene.collection.children.link(collection)
-        else:
-            collection = bpy.data.collections.get("Player")
-            update_players(self,context,collection)
+        update_players(self,context)
         return {'FINISHED'}
 
 class MAP_add(bpy.types.Operator):
@@ -580,7 +560,7 @@ class MESH_Create_GeometryNode_Walls(bpy.types.Operator):
         bpy.context.object.modifiers["Solidify"].thickness = 0.3
         bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
 
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             wall)
             
         bpy.context.view_layer.objects.active = wall
@@ -607,7 +587,7 @@ class MESH_Create_GeometryNode_Pillars(bpy.types.Operator):
         bpy.context.object.modifiers["Solidify"].material_offset_rim = 1
 
 
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             pillar)
         bpy.context.view_layer.objects.active = pillar
         pillar.select_set(True)
@@ -623,7 +603,7 @@ class MESH_Create_GreasePencil(bpy.types.Operator):
         bpy.ops.object.gpencil_add(align='WORLD', location=(0,0,1), scale=(1, 1, 1), type='EMPTY')
         gpencil = context.object
         gpencil.name = "gpencil"
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, gpencil)
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, gpencil)
         bpy.context.view_layer.objects.active = gpencil
         bpy.ops.gpencil.paintmode_toggle()
         bpy.data.brushes["Pencil"].size = 200
@@ -644,7 +624,7 @@ class MESH_Create_Cave(bpy.types.Operator):
         cave = context.object
         cave.name = "Cave"
         cave.data.materials.append(CreateCaveMaterial(self, context))
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, cave)
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, cave)
         bpy.context.view_layer.objects.active = cave
         return{'FINISHED'}
 
@@ -680,11 +660,30 @@ class ImportMapImage(bpy.types.Operator, ImportHelper):
         map.name = "Cave"
         map.data.materials.append(CreateMapMaterial(self, context,image))
         
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             map)
         bpy.context.view_layer.objects.active = map
         map.select_set(True)
         return{'FINISHED'}
+
+class NEXT_round(bpy.types.Operator):
+    """Next Round"""
+    bl_idname = "next.round"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Next Round"
+    
+    @classmethod
+    def poll(seld,context):
+        dm_property = context.scene.dm_property
+        return dm_property.use_round_order
+    def execute(self, context):
+        dm_property = context.scene.dm_property
+
+        if dm_property.characterlist_data_index < len(dm_property.characterlist)-1: 
+            dm_property.characterlist_data_index += 1
+        else:
+            dm_property.characterlist_data_index = 0
+        return{'FINISHED'}
+
 
 class AddWhiteMapImage(bpy.types.Operator):
     """Adds a white Background to the current floor"""
@@ -700,7 +699,7 @@ class AddWhiteMapImage(bpy.types.Operator):
         ground_obj = dm_property.groundlist.add()
         ground_obj.obj = map
         
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             map)
         map.hide_select =True
 
@@ -751,7 +750,7 @@ class AddGrid(bpy.types.Operator):
 
             dm_property = context.scene.dm_property
 
-            # addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+            # addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             #     grid)
             addToCollection(self,context, "Camera", grid)
             #grid.hide_select = True
@@ -786,7 +785,7 @@ class ConvertGPencilToWall(bpy.types.Operator):
         wall.data.materials.append(CreateBackfaceWallMaterial(self, context))
         CreateExtrudeGeoNode(self,context,wall)
         dm_property = context.scene.dm_property
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, 
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, 
             wall)
                 
         return{'FINISHED'}
@@ -847,7 +846,7 @@ class LIGHT_Create_Torch(bpy.types.Operator):
             torch.data.use_custom_distance = True
             torch.data.cutoff_distance = 12.192
         dm_property = context.scene.dm_property
-        addToCollection(self,context, dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index].floor.name, torch)
+        addToCollection(self,context, get_current_floor(dm_property).floor.name, torch)
         bpy.context.view_layer.objects.active = torch
         torch.select_set(True)
         return{'FINISHED'}
@@ -959,7 +958,7 @@ class TOUCH_OT_use_touch_operator(bpy.types.Operator):
 
     @classmethod
     def poll(self, context):
-        if pygame_installed and context.scene.dm_property.hwnd_id is not -1:
+        if pygame_installed and context.scene.dm_property.hwnd_id != -1:
             return True
         else:
             return False 
@@ -973,10 +972,9 @@ class TOUCH_OT_use_touch_operator(bpy.types.Operator):
 blender_classes = [
     MESH_Setup_Map,
     ImportMapImage,
-    PLAYER_Distance_Button,
-    PLAYER_Torch_Button,
     PLAYER_add,
     PLAYER_update,
+    NEXT_round,
     MAP_add,
     MAP_update,
     FLOOR_add,

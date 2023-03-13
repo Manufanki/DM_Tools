@@ -23,7 +23,10 @@ class DM_PT_SceneSetupPanel(bpy.types.Panel):
             col.operator("scene.setup", icon ="WORLD")
             col.prop(context.scene.unit_settings, 'system')
             col.operator("scene.grid_scale", text="Set 5ft Grid")
-            col.operator("add.grid", icon="MESH_GRID")
+            if dm_property.grid.hide_viewport:
+                col.operator("add.grid", icon="MESH_GRID", text="Add Grid")
+            else:
+                col.operator("add.grid", icon="MESH_GRID", text="Remove Grid")
             #col.prop(context.scene.tool_settings, "use_snap")
 
 class DM_PT_CameraSetupPanel(bpy.types.Panel):
@@ -84,9 +87,7 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
         layout = self.layout
         dm_property = context.scene.dm_property
         if dm_property.is_setup:
-            
             list_row_layout = layout.row()
-
             list_row_layout.template_list("DM_UL_Playerlist_player", "", dm_property, "characterlist", dm_property, "characterlist_data_index")
             menu_sort_layout_column = list_row_layout.column()
             menu_sort_layout = menu_sort_layout_column.column(align=True)
@@ -103,31 +104,25 @@ class DM_PT_PlayerListPanel(bpy.types.Panel):
             col = layout.column()
             row = layout.row()
 
-            i = 0
             for char in dm_property.characterlist:
                 if bpy.context.object == char.obj: 
                     player_property = char.obj.player_property
                     layout.prop(player_property, "name")
                     if player_property.is_npc == False:
                         layout.prop(player_property, "darkvision", text="Darkvision")
+
+                    layout.prop(player_property.light_coll, "hide_viewport", text="", emboss=False,)
                     list_row = layout.row()
-                    if player_property.distance_sphere.hide_get():
-                        list_row.operator("player.distance_toggle", text="", icon="HIDE_ON")
-                    else:
-                        list_row.operator("player.distance_toggle",text ="",  icon="HIDE_OFF")
+                    list_row.prop(player_property, "distance_toggle", text="", icon="PROP_OFF")
                     list_row.label(text="Distance Measure")
                     split = list_row.split(factor=0.9)
                     split.prop(player_property, "move_distance", text="")
                     split.label(text=GetCurrentUnits()[0])
 
                     list1_row = layout.row()
-                    if player_property.torch.hide_get():
-                        list1_row.operator("player.torch", text="", icon="HIDE_ON")
-                        list1_row.label(text="Use Torch")
-                    else:
-                        list1_row.operator("player.torch", text="", icon="HIDE_OFF")
-                        list1_row.label(text="Use Torch")
-                        list1_row.prop(player_property.torch.data, "cutoff_distance", text="")
+                    list1_row.prop(player_property, "torch_toggle", text="", icon="LIGHT")
+                    #if player_property.torch.hide_get():
+                    list1_row.prop(player_property.torch.data, "cutoff_distance", text="")
 
                     list2_col = layout.column()
                     list2_col.label(text="Player Stats")
@@ -254,6 +249,7 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
             col.operator("window.new", icon ='WINDOW')
             col.operator("wm.window_fullscreen_toggle",icon ="FULLSCREEN_ENTER")
 
+
             if dm_property.touch_active:
                 col.prop(dm_property, "touch_navigation", text="Use Touch Navigaion:")
                 col.operator("touch.use_touch",icon ="CANCEL", text="Close Touch")
@@ -261,6 +257,9 @@ class DM_PT_WindowSetupPanel(bpy.types.Panel):
                 col.prop(dm_property, "touch_update_rate", text="Touch FPS:")
                 col.operator("touch.use_touch",icon ="PROP_OFF")
             col.label(text="Touch setting")
+            split = col.split(factor=0.3)
+            split.prop(dm_property, "use_round_order", text="Use Round Order")
+            split.operator("next.round",)
             if obj_in_objectlist(context.active_object, dm_property.groundlist):
                 col.operator("add.ground",icon ="REMOVE", text="Remove Ground")
             else:
@@ -286,7 +285,7 @@ class DM_UL_Playerlist_player(bpy.types.UIList):
                 split.prop(slot, "name", text="", emboss=False, icon_value=icon)
                 row.prop(slot, "list_index", text="Init")
                 row.prop(slot,"health_points",text ="HP")
-                row.prop(slot.light_coll, "hide_viewport", text="", icon="HIDE_OFF")
+                row.prop(slot, "distance_toggle", text="", icon="PROP_OFF")
                 row.prop(slot.player_coll, "hide_viewport", text="", emboss=False, icon_value=icon)
             else:
                 split.label(text="", translate=False, icon_value=icon)
@@ -398,11 +397,23 @@ class PLAYER_List_Button(bpy.types.Operator):
             if index >= 0 and index < len(char_list):
                 player = char_list[index].obj
                 player.player_property.distance_sphere.parent = player
-                try:
+                if player.player_property.is_npc:
                     player.player_property.player_coll.children.unlink(player.player_property.light_coll)
-                    bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)
-                except:
-                    print("no collection to unlink")
+                    current_floor = get_current_floor(dm_property)
+                    current_floor.floor.children.unlink(player.player_property.player_coll)
+
+                    floor_index = 0
+                    for char in current_floor.characterlist:
+                        if char.obj is player:
+                            current_floor.characterlist.remove(floor_index)
+                        floor_index += 1
+
+                else:
+                    try:
+                        player.player_property.player_coll.children.unlink(player.player_property.light_coll)
+                        bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)
+                    except:
+                        print("no collection to unlink")
                 delete_hierarchy(player)
                 char_list.remove(index)
                 index = min(index, len(char_list)-1)
@@ -438,8 +449,6 @@ class PLAYER_List_Button(bpy.types.Operator):
                         print("move down " , j)
                 dif = k - list(initiative_list.keys()).index(i) 
                 print("after:" ,i, " : " , dif)
-                print()
-                print()
             
   
         return {"FINISHED"}      

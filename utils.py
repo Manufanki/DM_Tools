@@ -1,9 +1,7 @@
-import re
 import bpy
 from bpy_extras import view3d_utils
 from mathutils import Vector
 
-#region Methods
 def GetCurrentUnits():
     lu = bpy.context.scene.unit_settings.length_unit
 
@@ -203,10 +201,25 @@ def CreateExtrudeGeoNode(self, context,obj):
         node_group.links.new(extrude_node.outputs['Mesh'], group_out.inputs['Geometry'])
 
 
-def update_players(self,context, collection):
+def update_players(self,context):
     dm_property = context.scene.dm_property
 
     dm_property.characterlist.clear()
+
+
+    for char in get_last_floor(dm_property).characterlist:
+        if char.obj is None:
+            continue
+        tmp_char = dm_property.characterlist.add()
+        tmp_char.obj = char.obj
+        
+
+    if bpy.data.collections.get("Player") is None:
+        collection = bpy.data.collections.new("Player")
+        bpy.context.scene.collection.children.link(collection)
+    else:
+        collection = bpy.data.collections.get("Player")
+
     for player in collection.all_objects:
         if player.player_property.name != "":
                 player_pointer = dm_property.characterlist.add()
@@ -244,8 +257,6 @@ def sort_player_list(self,context):
                 print("move down " , j)
         dif = k - list(initiative_list.keys()).index(i) 
         print("after:" ,i, " : " , dif)
-        print()
-        print()
 
 def update_collection_name(self, contex, collection):
     try:
@@ -314,6 +325,13 @@ def delete_hierarchy(obj):
     for n in names:
         bpy.data.objects.remove(bpy.data.objects[n], do_unlink=True)
 
+def get_current_floor(dm_property):
+    return dm_property.maplist[dm_property.maplist_data_index].floorlist[dm_property.maplist[dm_property.maplist_data_index].floorlist_data_index]
+
+def get_last_floor(dm_property):
+    return dm_property.maplist[dm_property.active_map_index].floorlist[dm_property.active_floor_index]
+
+
 
 def selectCharacter(self, context):
     bpy.ops.object.select_all(action='DESELECT')
@@ -322,6 +340,10 @@ def selectCharacter(self, context):
             char.obj.select_set(False)
         self.characterlist[self.characterlist_data_index].obj.select_set(True)
         bpy.context.view_layer.objects.active =  self.characterlist[self.characterlist_data_index].obj
+        if self.use_round_order:
+            self.active_character = self.characterlist[self.characterlist_data_index].obj
+            if self.active_character.player_property.player_coll.hide_viewport:
+                bpy.ops.next.round()
 
 
 
@@ -376,6 +398,7 @@ def obj_in_objectlist(obj, list):
             return True
     return False
 
+
 def selectMap(self, context):
     print("SELECT MAP")
     if self.maplist_data_index != -1:
@@ -386,6 +409,9 @@ def selectMap(self, context):
             map.floorlist_data_index = 0
         self.maplist[self.maplist_data_index].map.hide_viewport = False
         context.scene.grease_pencil = self.maplist[self.maplist_data_index].annotation
+
+        context.scene.dm_property.active_map_index = self.maplist_data_index
+        update_players(self,context)
 
 def selectFloor(self, context):
     dm_property = context.scene.dm_property
@@ -406,6 +432,31 @@ def selectFloor(self, context):
         map.annotation.layers.active =  map.annotation.layers[self.floorlist[self.floorlist_data_index].name]
         map.annotation.layers.active.annotation_hide = False
 
+        # if dm_property.active_floor_index == -1:
+        #     dm_property.active_floor_index = self.floorlist_data_index
+        #     return
+
+        
+        # for char in get_last_floor(dm_property).characterlist:
+        #     index = 0
+        #     for compare_char in dm_property.characterlist:
+        #         if char.obj.name == compare_char.obj.name:
+        #             dm_property.characterlist.remove(index)
+        #         index += 1
+            # player = char.obj
+            # player.player_property.distance_sphere.parent = player
+            # try:
+            #     player.player_property.player_coll.children.unlink(player.player_property.light_coll)
+            #     bpy.data.collections.get("Player").children.unlink(player.player_property.player_coll)
+            # except:
+            #     print("no collection to unlink")
+            # delete_hierarchy(player)
+            #
+           
+
+        dm_property.active_floor_index = self.floorlist_data_index
+        update_players(self,context)
+            
 def addToCollection(self,context, collectionName, obj):
     for coll in obj.users_collection:
             # Unlink the object
@@ -418,3 +469,24 @@ def addToCollection(self,context, collectionName, obj):
         collection = bpy.data.collections.get(collectionName)
     collection.objects.link(obj)
     return collection
+
+
+      
+def msgbus_callback(*arg):
+    # in console will be print selected_objects
+    dm_property = bpy.context.scene.dm_property
+    index = 0
+    for char in dm_property.characterlist:
+        if bpy.context.active_object is char.obj:
+            print(bpy.context.active_object)
+            dm_property.characterlist_data_index = index
+        index += 1
+    # you can do something
+        
+def subscribe_to_obj():       
+    bpy.msgbus.subscribe_rna(
+        key=(bpy.types.LayerObjects, 'active'),
+        owner=bpy,
+        args=('something, if you need',),
+        notify=msgbus_callback
+        )

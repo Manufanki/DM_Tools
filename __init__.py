@@ -52,16 +52,13 @@ importlib.reload(ui)
 
 
 
-#endregion Methods     
-
-#region Operatior
 Dependency = namedtuple("Dependency", ["module", "package", "name"])
 
 # Declare all modules that this add-on depends on, that may need to be installed. The package and (global) name can be
 # set to None, if they are equal to the module name. See import_module and ensure_and_import_module for the explanation
 # of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
 # "import" statement.
-dependencies = (Dependency(module="pygame", package=None, name=None),
+dependencies = (Dependency(module="pygame==2.1.1", package=None, name=None),
                 Dependency(module="pywin32", package=None, name=None)
                 
 )
@@ -250,7 +247,7 @@ def register():
     global dependencies_installed
 
     dependencies_installed = check_all_modules()
-
+    subscribe_to_obj()
     if pygame_installed == True:
         print("TOUCHTRACER REGISTER")
         touch.register()
