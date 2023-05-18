@@ -58,9 +58,8 @@ Dependency = namedtuple("Dependency", ["module", "package", "name"])
 # set to None, if they are equal to the module name. See import_module and ensure_and_import_module for the explanation
 # of the arguments. DO NOT use this to import other parts of your Python add-on, import them as usual with an
 # "import" statement.
-dependencies = (Dependency(module="pygame==2.1.1", package=None, name=None),
-                Dependency(module="pywin32", package=None, name=None)
-                
+dependencies = (Dependency(module="pywin32", package=None, name=None),
+                Dependency(module="pygame==2.1.1", package=None, name=None),             
 )
 
 dependencies_installed = False

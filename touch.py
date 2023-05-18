@@ -333,15 +333,13 @@ def update_player_pos(self,context,id,touch_pos):
 
 
 
-def update_camera_pos(self, context,id,touch_pos):
+
+def update_camera_pos(self,context,id,touch_pos):
 
         dm_property = context.scene.dm_property
 
         touchlist = dm_property.touchlist
         index = 0
-
-        if dm_property.touch_navigation == False:
-            return
 
         if len(touchlist) < 2:
             return
@@ -356,57 +354,50 @@ def update_camera_pos(self, context,id,touch_pos):
         
         if index == -1:
             return
-        
-
-        touch0_start = touchlist[0].touch_start
-        touch0_start = Vector((touch0_start[0], touch0_start[1]))
-
-        touch1_start = touchlist[1].touch_start
-        touch1_start = Vector((touch1_start[0], touch1_start[1]))
-
+            
         if  touchlist[1].zoom_value == 0:
-            #touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
-            touchlist[1].zoom_value = (touch0_start[1] + touch1_start[1]) /2
+            touch0_start = touchlist[0].touch_start
+            touch0_start = Vector((touch0_start[0], touch0_start[1]))
 
-        
-        if True:#touch0_start[0] < (self.width/10) and touch1_start[0] < (self.width/10):
+            touch1_start = touchlist[1].touch_start
+            touch1_start = Vector((touch1_start[0], touch1_start[1]))
 
-            touch0_pos = touchlist[0].touch_pos
-            touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
+            touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
 
-            touch1_pos = touchlist[1].touch_pos
-            touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
+        touch0_pos = touchlist[0].touch_pos
+        touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
 
+        touch1_pos = touchlist[1].touch_pos
+        touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
 
+        zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
 
-            #zoomvalue = float(np.linalg.norm(touch0_start - touch0_pos))
-            zoomvalue = (touch0_pos[1] + touch1_pos[1]) /2
-            new_zoom_value =  touchlist[1].zoom_value - zoomvalue  
-           
-            touchlist[1].zoom_value = zoomvalue
-            new_zoom_value = new_zoom_value *0.075
+        new_zoom_value =  zoomvalue - touchlist[1].zoom_value
+        touchlist[1].zoom_value = zoomvalue
+        new_zoom_value = new_zoom_value *0.075
 
-            dm_property.zoom_value += new_zoom_value
+        dm_property.zoom_value += new_zoom_value
 
-
-        threshold = 4
+        threshold = 5
         if abs(dm_property.zoom_value_backup - dm_property.zoom_value) > threshold:
             if dm_property.zoom_value < dm_property.zoom_value_backup :
                 threshold = -threshold
             dm_property.camera_zoom = dm_property.zoom_value - threshold
-            #clear_touch_id(dm_property)
-        # else:
-        #     last_touch_pos = touchlist[index].touch_pos
-        #     last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
+            for char in dm_property.characterlist:
+                char.obj.player_property.touch_id = -1
+        #else:
+            last_touch_pos = touchlist[index].touch_pos
+            last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
             #touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
 
-            #x = dm_property.camera_zoom * .01
-            # a = 10
-            #speed =  (-a*pow(x,.025) + a+.1) *0.1
+            x = dm_property.camera_zoom * .01
+            a = 10
+            speed =  (-a*pow(x,.025) + a+.1) *0.1
+            print("Speed: ",speed)
             
             #result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
-            # dm_property.camera.location[0] +=  (last_touch_pos[0] - touch_pos[0]) * speed
-            # dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
+            dm_property.camera.location[0] +=  (last_touch_pos[0] - touch_pos[0]) * speed
+            dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
 
             
 
@@ -415,30 +406,6 @@ def update_camera_pos(self, context,id,touch_pos):
             dm_property.touchlist[index].touch_pos[1] = int(touch_pos[1])
         except Exception as e:
             print(e)
-
-
-def move_camera_at_boarderts(self, touch_pos, dm_property):
-
-        x = dm_property.camera_zoom * .01
-        a = 10
-        speed =  (-a*pow(x,.025) + a+.1) * (1/dm_property.touch_update_rate *120)
-
-        boarder_size = 20
-
-        on_boarder = False
-        if touch_pos[0] < (self.width/boarder_size):
-            dm_property.camera.location[0] -=  speed
-            on_boarder = True
-        if touch_pos[0] > (self.width - self.width/boarder_size):
-            dm_property.camera.location[0] +=  speed
-            on_boarder = True
-        if touch_pos[1] < (self.height/boarder_size):
-            dm_property.camera.location[1] -=  speed
-            on_boarder = True
-        if touch_pos[1] > (self.height - self.height/boarder_size):
-            dm_property.camera.location[1] +=  speed 
-            on_boarder = True
-        return on_boarder
 
 def cancel_programm(dm_property):
     dm_property.touch_active = False 
@@ -471,8 +438,8 @@ def update_touch_input(self,dm_property):
                     e = touch.get_finger(touch_id,i)    
                     if e is not None:
                         touch_pos = Vector((int(self.width * e['x']), int(self.height-(self.height * e['y']))))
-                        if  move_camera_at_boarderts(self,touch_pos, dm_property):
-                            move_cam = True
+                        # if  move_camera_at_boarderts(self,touch_pos, dm_property):
+                        #     move_cam = True
                 if not move_cam:
                     return
 
@@ -608,7 +575,7 @@ class TOUCH_OT_move(bpy.types.Operator):
                         break
                 if navigation_touch:
                      set_touch_id(bpy.context,e.finger_id, touch_pos, self.time)
-                     #update_camera_pos(self, bpy.context,e.finger_id, touch_pos)
+                     update_camera_pos(self, bpy.context,e.finger_id, touch_pos)
             elif e.type == pg.FINGERUP:
                 print("__FINGER_UP: ",e.finger_id)
                 for char in dm_property.characterlist:
@@ -661,4 +628,106 @@ def unregister():
     #     bpy.utils.unregister_class(c)
 
 
+
+
+#Deprecated
+
+def two_finger_slide_zoom(self,context,id,touch_pos):
+
+        dm_property = context.scene.dm_property
+
+        touchlist = dm_property.touchlist
+        index = 0
+
+        if len(touchlist) == 0:
+            return
+        
+        index = -1
+        i =  -1
+        for touch in touchlist:
+            i +=1
+            if touch.finger_id == id:
+                index = i
+                break
+        
+        if index == -1:
+            return
+
+
+        if index == 0:
+            last_touch_pos = touchlist[index].touch_pos
+            last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
+
+
+            touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
+
+            speed = 0.025
+            
+            #result, location, normal, index, obj, matrix = bpy.context.scene.ray_cast(bpy.context.view_layer.depsgraph,ray_origin_mouse, direction)
+            dm_property.camera.location[0] +=  (last_touch_pos[0] - touch_pos[0]) * speed
+            dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
+
+
+        elif index == 1:
+
+
+            if  touchlist[1].zoom_value == 0:
+                touch0_start = touchlist[0].touch_start
+                touch0_start = Vector((touch0_start[0], touch0_start[1]))
+
+                touch1_start = touchlist[1].touch_start
+                touch1_start = Vector((touch1_start[0], touch1_start[1]))
+
+                touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
+
+            touch0_pos = touchlist[0].touch_pos
+            touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
+
+            touch1_pos = touchlist[1].touch_pos
+            touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
+
+            zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
+
+            new_zoom_value =  zoomvalue - touchlist[1].zoom_value
+            touchlist[1].zoom_value = zoomvalue
+            new_zoom_value = new_zoom_value *0.05
+            print(new_zoom_value)
+
+
+            dm_property.camera_zoom += new_zoom_value
+
+
+            for char in dm_property.characterlist:
+                char.obj.player_property.touch_id = -1
+
+            
+
+        try:
+            dm_property.touchlist[index].touch_pos[0] = int(touch_pos[0])
+            dm_property.touchlist[index].touch_pos[1] = int(touch_pos[1])
+        except:
+            print("")
+
+def move_camera_at_boarderts(self, touch_pos, dm_property):
+
+        x = dm_property.camera_zoom * .01
+        a = 10
+        speed =  (-a*pow(x,.025) + a+.1) * (1/dm_property.touch_update_rate *120)
+
+        boarder_size = 20
+
+        on_boarder = False
+        if touch_pos[0] < (self.width/boarder_size):
+            dm_property.camera.location[0] -=  speed
+            on_boarder = True
+        if touch_pos[0] > (self.width - self.width/boarder_size):
+            dm_property.camera.location[0] +=  speed
+            on_boarder = True
+        if touch_pos[1] < (self.height/boarder_size):
+            dm_property.camera.location[1] -=  speed
+            on_boarder = True
+        if touch_pos[1] > (self.height - self.height/boarder_size):
+            dm_property.camera.location[1] +=  speed 
+            on_boarder = True
+        return on_boarder
 
