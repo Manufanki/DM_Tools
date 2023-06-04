@@ -236,7 +236,7 @@ class DMProperties(bpy.types.PropertyGroup):
     camera_zoom : bpy.props.FloatProperty(
         default= 60,
         min = 10,
-        max = 100,
+        max = 150,
         update=adjustCamera
     )
     camera_pan_toggle : bpy.props.BoolProperty()
@@ -262,7 +262,7 @@ class DMProperties(bpy.types.PropertyGroup):
     touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
 
     player_touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
-
+    nav_touchlist : bpy.props.CollectionProperty(type = TouchPointerProperties)
     touch_device_id : bpy.props.IntProperty(default=-1)
     hwnd_id : bpy.props.IntProperty(default=-1)
     zoom_value: bpy.props.FloatProperty()

@@ -54,7 +54,6 @@ def angle_between(v1, v2):
 
 def ground_objects(context):
     """Loop over (object, matrix) pairs (mesh only)"""
-
     index = -1
 
     for ground in context.scene.dm_property.groundlist:
@@ -68,7 +67,6 @@ def ground_objects(context):
 
 def obj_ray_cast(obj, matrix,ray_origin,ray_target):
     """Wrapper for ray casting that moves the ray into object space"""
-
     # get the ray relative to the object
     matrix_inv = matrix.inverted()
     ray_origin_obj = matrix_inv @ ray_origin
@@ -86,10 +84,8 @@ def obj_ray_cast(obj, matrix,ray_origin,ray_target):
     except:
         return None, None, None
 
-def set_touch_id( context,id,touch_pos, time):
-    """Run this function on left mouse, execute the ray cast"""
-    # get the context arguments
-    touch_pos = Vector((touch_pos[0], touch_pos[1]))
+
+def get_ray_target(context,touch_pos):
     dm_property = context.scene.dm_property
     area =  dm_property.screen.areas[0]
     region = None
@@ -107,13 +103,11 @@ def set_touch_id( context,id,touch_pos, time):
     view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
     ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
 
-    ray_target = ray_origin + view_vector
+    return ray_origin , view_vector
 
+def raycast_screen_to_world(context, ray_origin,ray_target):
     best_length_squared = -1.0
     best_hit_world = None
-
-
-
     for obj, matrix in ground_objects(context):
         if obj.type == 'MESH':
             hit, normal, face_index = obj_ray_cast(obj, matrix,ray_origin, ray_target)
@@ -124,63 +118,76 @@ def set_touch_id( context,id,touch_pos, time):
             if best_hit_world is None or length_squared < best_length_squared:
                 best_length_squared = length_squared
                 best_hit_world = hit_world
+    return best_hit_world
 
-            #context.scene.cursor.location = hit_world
+def set_touch_id( context,id,touch_pos, time):
+    """On Touch Down, a touch id is given, the touch can belong to a character or navigation"""
+    # get the context arguments
 
-            dm_property = context.scene.dm_property
+    
+    touch_pos = Vector((touch_pos[0], touch_pos[1]))
+    
+    dm_property = context.scene.dm_property
+
+    ray_origin , view_vector = get_ray_target(context, touch_pos)
+
+    ray_target = ray_origin + view_vector
+    hit_world = raycast_screen_to_world(context,ray_origin, ray_target)
+    if hit_world is not None:
+        distance = 1000
+        player_index = -1
+        index = -1
+
+        #Find closest player
+        for char in dm_property.characterlist:
+            index += 1
+            if char.obj.player_property.is_npc:
+                continue
+
+           
+            hit_world_XY = hit_world
+            hit_world_XY[2] = 0
+            char_loc_XY = copy.deepcopy(char.obj.location)
+            char_loc_XY[2] = 0
+
+            # place character inside circle
+            if not char.obj.player_property.distance_sphere.hide_get():
+                for touch in dm_property.player_touchlist:
+                    d = np.linalg.norm(hit_world-char.obj.player_property.distance_sphere.location)
+                    if d <= char.obj.player_property.move_distance + 1 and touch.player_id == char.obj.player_property.player_id:  
+                        touch.finger_id = id
+                        touch.start_time = time
+                        touch.touch_start[0] = int(touch_pos[0])
+                        touch.touch_start[1] = int(touch_pos[1])        
+                        touch.touch_pos[0] = int(touch_pos[0])
+                        touch.touch_pos[1] = int(touch_pos[1])
+
+                        char.obj.location = hit_world
+                        char.obj.player_property.distance_toggle = not char.obj.player_property.distance_toggle
+                        add_touch_to_list(dm_property.touchlist,id, time,touch_pos, char.obj.player_property.player_id)
+                        char.obj.player_property.touch_id = id
+                        return 
 
 
-            #place character inside circle
-            # if(dm_property.use_round_order and dm_property.active_character != None):
-            #     char = dm_property.active_character
-            #     if not char.player_property.distance_sphere.hide_get():
-            #         for touch in dm_property.player_touchlist:
-            #             d = np.linalg.norm(hit_world-char.player_property.distance_sphere.location)
-            #             if d <= char.player_property.move_distance + 1 and touch.player_id == char.player_property.player_id:  
-            #                 touch.finger_id = id
-            #                 touch.start_time = time
-            #                 touch.touch_start[0] = int(touch_pos[0])
-            #                 touch.touch_start[1] = int(touch_pos[1])        
-            #                 touch.touch_pos[0] = int(touch_pos[0])
-            #                 touch.touch_pos[1] = int(touch_pos[1])
-
-            #                 char.location = hit_world
-            #                 char.player_property.distance_toggle = not char.player_property.distance_toggle
-            #                 return 
-
-            distance = 1000
-            player_index = -1
-            index = -1
-            for char in dm_property.characterlist:
-                index += 1
-                hit_world_XY = hit_world
-                hit_world_XY[2] = 0
-                char_loc_XY = copy.deepcopy(char.obj.location)
-                char_loc_XY[2] = 0
-                d = np.linalg.norm(hit_world_XY-char_loc_XY)
-                #print(char.obj.name,"DIST:",d)
-                if d < 1 and d < distance:
-                    if char.obj.player_property.touch_id <= -1:
-                        distance = d
-                        player_index = index
-            if player_index == -1:  
-                return False
-
+            d = np.linalg.norm(hit_world_XY-char_loc_XY)
+            #print(char.obj.name,"DIST:",d)
+            if d < 1 and d < distance:
+                if char.obj.player_property.touch_id <= -1:
+                    distance = d
+                    player_index = index
+        if player_index > -1:  #Player was found
             char = dm_property.characterlist[player_index]
-            # if char.obj.player_property.touch_id != -1:
-            #     return False
-            if(dm_property.use_round_order and dm_property.active_character != char.obj):
-                return
             char.obj.player_property.touch_id = id
-
+            
+            #update player touch for this character
             for touch in dm_property.player_touchlist:
                 if touch.player_id == char.obj.player_property.player_id:
                     if time -touch.start_time < .2:
-                        if dm_property.use_round_order:
-                            bpy.ops.next.round()
-                        else:
-                            char.obj.player_property.distance_toggle = not char.obj.player_property.distance_toggle
-  
+                        # if dm_property.use_round_order:
+                        #     bpy.ops.next.round()
+                        # else:
+                        char.obj.player_property.distance_toggle = not char.obj.player_property.distance_toggle
+
                     touch.finger_id = id
                     touch.start_time = time
                     touch.touch_start[0] = int(touch_pos[0])
@@ -188,16 +195,20 @@ def set_touch_id( context,id,touch_pos, time):
                     touch.touch_pos[0] = int(touch_pos[0])
                     touch.touch_pos[1] = int(touch_pos[1])
                     return True
+            #if no touch is found add a new touch
+            add_touch_to_list(dm_property.touchlist,id, time,touch_pos, char.obj.player_property.player_id)
             add_touch_to_list(dm_property.player_touchlist,id, time,touch_pos, char.obj.player_property.player_id)
-            return True
+            return
+    #player was not found = navigational Touch
 
-    for touch in dm_property.touchlist:
-        if touch.finger_id == id:
-            return False
     dm_property.zoom_value_backup = dm_property.camera_zoom
     dm_property.zoom_value = dm_property.camera_zoom
-    print("FIRST TOUCH NAV")
-    return True
+    add_touch_to_list(dm_property.touchlist,id, time,touch_pos)
+    add_touch_to_list(dm_property.nav_touchlist,id, time,touch_pos)
+    
+
+    
+    
 
 
 def add_touch_to_list(list, id, time, touch_pos, player_id = -1):
@@ -210,7 +221,19 @@ def add_touch_to_list(list, id, time, touch_pos, player_id = -1):
     touch_pointer.touch_pos[0] = int(touch_pos[0])
     touch_pointer.touch_pos[1] = int(touch_pos[1])
 
+def remove_touch_from_list(list,finger_id):
+    index = 0
+    for touch in list:
+        if touch.finger_id == finger_id:
+            list.remove(index)
+            break
+        index += 1
 
+
+def get_touch_from_list(list, finger_id):
+    for touch in list:
+        if touch.finger_id == finger_id:
+            return touch
 def clear_touch_id(dm_property):
      for char in dm_property.characterlist:
                 char.obj.player_property.touch_id = -1
@@ -338,23 +361,21 @@ def update_camera_pos(self,context,id,touch_pos):
 
         dm_property = context.scene.dm_property
 
-        touchlist = dm_property.touchlist
-        index = 0
+        if dm_property.touch_navigation == False:
+            return
 
+        touchlist = dm_property.nav_touchlist
+
+    
         if len(touchlist) < 2:
+            return   
+
+        if touchlist[0].finger_id == id:
+            touchlist[0].touch_pos[0] = int(touch_pos[0])
+            touchlist[0].touch_pos[1] = int(touch_pos[1])
             return
         
-        index = -1
-        i =  -1
-        for touch in touchlist:
-            i +=1
-            if touch.finger_id == id:
-                index = i
-                break
-        
-        if index == -1:
-            return
-            
+ 
         if  touchlist[1].zoom_value == 0:
             touch0_start = touchlist[0].touch_start
             touch0_start = Vector((touch0_start[0], touch0_start[1]))
@@ -374,7 +395,7 @@ def update_camera_pos(self,context,id,touch_pos):
 
         new_zoom_value =  zoomvalue - touchlist[1].zoom_value
         touchlist[1].zoom_value = zoomvalue
-        new_zoom_value = new_zoom_value *0.075
+        new_zoom_value = new_zoom_value *0.15
 
         dm_property.zoom_value += new_zoom_value
 
@@ -385,8 +406,8 @@ def update_camera_pos(self,context,id,touch_pos):
             dm_property.camera_zoom = dm_property.zoom_value - threshold
             for char in dm_property.characterlist:
                 char.obj.player_property.touch_id = -1
-        #else:
-            last_touch_pos = touchlist[index].touch_pos
+        else:
+            last_touch_pos = touchlist[1].touch_pos
             last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
             #touch_distance = np.linalg.norm(touch_pos - last_touch_pos)
 
@@ -399,13 +420,9 @@ def update_camera_pos(self,context,id,touch_pos):
             dm_property.camera.location[0] +=  (last_touch_pos[0] - touch_pos[0]) * speed
             dm_property.camera.location[1] +=  (last_touch_pos[1] - touch_pos[1]) * speed
 
-            
-
-        try:
-            dm_property.touchlist[index].touch_pos[0] = int(touch_pos[0])
-            dm_property.touchlist[index].touch_pos[1] = int(touch_pos[1])
-        except Exception as e:
-            print(e)
+   
+            touchlist[1].touch_pos[0] = int(touch_pos[0])
+            touchlist[1].touch_pos[1] = int(touch_pos[1])
 
 def cancel_programm(dm_property):
     dm_property.touch_active = False 
@@ -479,6 +496,7 @@ class TOUCH_OT_move(bpy.types.Operator):
         # for i in range(0,len_touch+1):
         dm_property.touchlist.clear()
         dm_property.player_touchlist.clear()
+        dm_property.nav_touchlist.clear()
         # len_pl_touch = len(dm_property.player_touchlist)
         # for i in range(0,len_pl_touch+1):
         #    dm_property.player_touchlist.remove(i)
@@ -560,21 +578,17 @@ class TOUCH_OT_move(bpy.types.Operator):
             if e.type == pg.FINGERDOWN:
                 print("FINGERDOWN: ",e.finger_id)
                 touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
-                add_touch_to_list(dm_property.touchlist,e.finger_id, self.time,touch_pos)
                 set_touch_id(bpy.context,e.finger_id, touch_pos, self.time)
 
                 
                 #print(f" Touch Id: {e.finger_id} touched at pos {touch_pos}")
             elif e.type == pg.FINGERMOTION:
                 touch_pos = Vector((int(width * e.x), int(height-(height * e.y))))
-                navigation_touch = True
-                for char in bpy.context.scene.dm_property.characterlist:
-                    if char.obj.player_property.touch_id == e.finger_id:
-                        update_player_pos(self,context,e.finger_id, touch_pos)
-                        navigation_touch = False
-                        break
-                if navigation_touch:
-                     set_touch_id(bpy.context,e.finger_id, touch_pos, self.time)
+                
+                if get_touch_from_list(dm_property.player_touchlist,e.finger_id):
+                    update_player_pos(self,context,e.finger_id, touch_pos)
+                else:
+                     #set_touch_id(bpy.context,e.finger_id, touch_pos, self.time)
                      update_camera_pos(self, bpy.context,e.finger_id, touch_pos)
             elif e.type == pg.FINGERUP:
                 print("__FINGER_UP: ",e.finger_id)
@@ -595,12 +609,10 @@ class TOUCH_OT_move(bpy.types.Operator):
                             char.obj.player_property.touch_id = abs(char.obj.player_property.touch_id) *-1
                         break
 
-                index = 0
-                for touch in dm_property.touchlist:
-                    if touch.finger_id == e.finger_id:
-                        dm_property.touchlist.remove(index)
-                        break
-                    index += 1
+                remove_touch_from_list(dm_property.touchlist,e.finger_id)
+                #remove_touch_from_list(dm_property.player_touchlist,e.finger_id)
+                remove_touch_from_list(dm_property.nav_touchlist,e.finger_id)
+
                 
         if dm_property.touch_navigation:
             update_touch_input(self,dm_property)
@@ -636,15 +648,15 @@ def two_finger_slide_zoom(self,context,id,touch_pos):
 
         dm_property = context.scene.dm_property
 
-        touchlist = dm_property.touchlist
+        nav_touchlist = dm_property.touchlist
         index = 0
 
-        if len(touchlist) == 0:
+        if len(nav_touchlist) == 0:
             return
         
         index = -1
         i =  -1
-        for touch in touchlist:
+        for touch in nav_touchlist:
             i +=1
             if touch.finger_id == id:
                 index = i
@@ -655,7 +667,7 @@ def two_finger_slide_zoom(self,context,id,touch_pos):
 
 
         if index == 0:
-            last_touch_pos = touchlist[index].touch_pos
+            last_touch_pos = nav_touchlist[index].touch_pos
             last_touch_pos = Vector((last_touch_pos[0], last_touch_pos[1]))
 
 
@@ -671,25 +683,25 @@ def two_finger_slide_zoom(self,context,id,touch_pos):
         elif index == 1:
 
 
-            if  touchlist[1].zoom_value == 0:
-                touch0_start = touchlist[0].touch_start
+            if  nav_touchlist[1].zoom_value == 0:
+                touch0_start = nav_touchlist[0].touch_start
                 touch0_start = Vector((touch0_start[0], touch0_start[1]))
 
-                touch1_start = touchlist[1].touch_start
+                touch1_start = nav_touchlist[1].touch_start
                 touch1_start = Vector((touch1_start[0], touch1_start[1]))
 
-                touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
+                nav_touchlist[1].zoom_value = float(np.linalg.norm(touch1_start - touch0_start))
 
-            touch0_pos = touchlist[0].touch_pos
+            touch0_pos = nav_touchlist[0].touch_pos
             touch0_pos = Vector((touch0_pos[0], touch0_pos[1]))
 
-            touch1_pos = touchlist[1].touch_pos
+            touch1_pos = nav_touchlist[1].touch_pos
             touch1_pos = Vector((touch1_pos[0], touch1_pos[1]))
 
             zoomvalue = float(np.linalg.norm(touch1_pos - touch0_pos))
 
-            new_zoom_value =  zoomvalue - touchlist[1].zoom_value
-            touchlist[1].zoom_value = zoomvalue
+            new_zoom_value =  zoomvalue - nav_touchlist[1].zoom_value
+            nav_touchlist[1].zoom_value = zoomvalue
             new_zoom_value = new_zoom_value *0.05
             print(new_zoom_value)
 
